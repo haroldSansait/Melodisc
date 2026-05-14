@@ -1,0 +1,930 @@
+
+> Melodisc@0.0.1 web
+> vite --host 0.0.0.0 --port 5173
+
+Port 5173 is in use, trying another one...
+
+  [32m[1mVITE[22m v8.0.13[39m  [2mready in [0m[1m362[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://localhost:[1m5174[22m/[39m
+  [32m➜[39m  [1mNetwork[22m: [36mhttp://10.67.212.192:[1m5174[22m/[39m
+[2m[32m  ➜[39m[22m[2m  press [22m[1mh + enter[22m[2m to show help[22m
+[2m11:46:37 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m"shadow*" style props are deprecated. Use "boxShadow".
+[2m11:46:59 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22mprops.pointerEvents is deprecated. Use style.pointerEvents
+[2m11:52:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m11:52:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33manimejs[32m[39m
+[2m11:52:58 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/.vite/deps/animejs.js?v=8c441041:992:58
+ > tick node_modules/.vite/deps/animejs.js?v=8c441041:1024:2
+ > Engine.update node_modules/.vite/deps/animejs.js?v=8c441041:1351:33
+ > tickEngine node_modules/.vite/deps/animejs.js?v=8c441041:1425:10
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/.vite/deps/animejs.js?v=8c441041:992:58
+ > tick node_modules/.vite/deps/animejs.js?v=8c441041:1024:2
+ > Engine.update node_modules/.vite/deps/animejs.js?v=8c441041:1351:33
+ > tickEngine node_modules/.vite/deps/animejs.js?v=8c441041:1425:10
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/.vite/deps/animejs.js?v=8c441041:992:58
+ > tick node_modules/.vite/deps/animejs.js?v=8c441041:1024:2
+ > Engine.update node_modules/.vite/deps/animejs.js?v=8c441041:1351:33
+ > tickEngine node_modules/.vite/deps/animejs.js?v=8c441041:1425:10
+
+[2m11:52:59 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m"shadow*" style props are deprecated. Use "boxShadow".
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:52:59 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:00 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx?t=1778773977782:31:22
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:53:09 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m11:53:33 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m11:53:37 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m11:54:03 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [33m[1m[vite][22m[39m [33m[2m(client)[22m[39m [2m[console.warn] [22m"shadow*" style props are deprecated. Use "boxShadow".
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:54:05 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m [31m[Unhandled error] [1mTypeError[22m: cardRef.current?.setNativeProps is not a function
+[39m > JSAnimation.onUpdate src/screens/auth/LoginScreen.tsx:43:25
+    41 |        ease: 'out(3)',
+    42 |        onUpdate: () => {
+    43 |          cardRef.current?.setNativeProps({
+       |                           ^
+    44 |            style: {
+    45 |              opacity: animationState.current.opacity,
+ > render node_modules/animejs/dist/modules/core/render.js:248:15
+ > tick node_modules/animejs/dist/modules/core/render.js:302:2
+ > Engine.update node_modules/animejs/dist/modules/engine/engine.js:55:10
+ > tickEngine node_modules/animejs/dist/modules/engine/engine.js:154:11
+
+[2m11:56:28 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m11:58:55 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m11:59:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m11:59:13 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx[22m
+[2m11:59:18 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m11:59:31 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:00:10 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m12:00:15 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:04:16 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m12:04:35 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:04:44 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx[22m
+[2m12:05:16 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m12:05:25 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:07:58 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m12:08:22 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:08:28 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx[22m
+[2m12:13:08 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/LoginScreen.tsx[22m
+[2m12:13:22 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
+[2m12:13:30 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx, /src/screens/auth/LoginScreen.tsx, /src/screens/auth/SignupScreen.tsx[22m
+[2m12:18:23 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/App.tsx, /src/screens/auth/LoginScreen.tsx, /src/screens/auth/SignupScreen.tsx[22m
+[2m12:18:28 AM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/screens/auth/SignupScreen.tsx[22m
