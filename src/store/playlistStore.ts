@@ -1,67 +1,102 @@
+import type { Unsubscribe } from 'firebase/firestore';
 import { create } from 'zustand';
 
-import type { Track } from '../constants/tracks';
+import {
+  addTrackToFirestorePlaylist,
+  createFirestorePlaylist,
+  deleteFirestorePlaylist,
+  removeTrackFromFirestorePlaylist,
+  renameFirestorePlaylist,
+  reorderFirestorePlaylist,
+  subscribeToFirestorePlaylists,
+  type FirestorePlaylist,
+} from '../services/firebase/firestoreService';
 
 export type Playlist = {
   id: string;
   name: string;
-  tracks: Track[];
+  trackIds: string[];
 };
 
 type PlaylistState = {
   playlists: Playlist[];
-  createPlaylist: (name: string) => string;
-  addTrackToPlaylist: (track: Track, playlistId?: string) => void;
+  isLoaded: boolean;
+  createPlaylist: (uid: string, name: string) => Promise<string>;
+  addTrackToPlaylist: (
+    uid: string,
+    trackId: string,
+    playlistId: string,
+  ) => void;
+  removeTrackFromPlaylist: (
+    uid: string,
+    playlistId: string,
+    trackId: string,
+  ) => void;
+  renamePlaylist: (uid: string, playlistId: string, newName: string) => void;
+  reorderPlaylist: (
+    uid: string,
+    playlistId: string,
+    newTrackIds: string[],
+  ) => void;
+  deletePlaylist: (uid: string, playlistId: string) => void;
+  subscribeToUserPlaylists: (uid: string) => Unsubscribe;
+  reset: () => void;
 };
 
-export const usePlaylistStore = create<PlaylistState>((set, get) => ({
-  playlists: [
-    {
-      id: 'my-playlist',
-      name: 'My Playlist',
-      tracks: [],
-    },
-  ],
-  createPlaylist: name => {
-    const nextNumber = get().playlists.length + 1;
+function mapFirestorePlaylist(doc: FirestorePlaylist): Playlist {
+  return {
+    id: doc.id,
+    name: doc.name,
+    trackIds: doc.trackIds ?? [],
+  };
+}
+
+export const usePlaylistStore = create<PlaylistState>((set, _get) => ({
+  playlists: [],
+  isLoaded: false,
+
+  subscribeToUserPlaylists: uid => {
+    const unsubscribe = subscribeToFirestorePlaylists(uid, docs => {
+      set({
+        playlists: docs.map(mapFirestorePlaylist),
+        isLoaded: true,
+      });
+    });
+
+    return unsubscribe;
+  },
+
+  createPlaylist: async (uid, name) => {
+    const nextNumber = _get().playlists.length + 1;
     const playlistId = `playlist-${Date.now()}-${nextNumber}`;
     const trimmedName = name.trim() || `Playlist ${nextNumber}`;
 
-    set(state => {
-      return {
-        playlists: [
-          ...state.playlists,
-          {
-            id: playlistId,
-            name: trimmedName,
-            tracks: [],
-          },
-        ],
-      };
-    });
+    await createFirestorePlaylist(uid, playlistId, trimmedName);
 
     return playlistId;
   },
-  addTrackToPlaylist: (track, playlistId) => {
-    const targetPlaylistId = playlistId ?? get().playlists[0]?.id;
 
-    if (!targetPlaylistId) {
-      return;
-    }
+  addTrackToPlaylist: (uid, trackId, playlistId) => {
+    addTrackToFirestorePlaylist(uid, playlistId, trackId).catch(() => {});
+  },
 
-    set(state => ({
-      playlists: state.playlists.map(playlist => {
-        if (playlist.id !== targetPlaylistId) {
-          return playlist;
-        }
+  removeTrackFromPlaylist: (uid, playlistId, trackId) => {
+    removeTrackFromFirestorePlaylist(uid, playlistId, trackId).catch(() => {});
+  },
 
-        const alreadyAdded = playlist.tracks.some(item => item.id === track.id);
+  renamePlaylist: (uid, playlistId, newName) => {
+    renameFirestorePlaylist(uid, playlistId, newName).catch(() => {});
+  },
 
-        return {
-          ...playlist,
-          tracks: alreadyAdded ? playlist.tracks : [...playlist.tracks, track],
-        };
-      }),
-    }));
+  reorderPlaylist: (uid, playlistId, newTrackIds) => {
+    reorderFirestorePlaylist(uid, playlistId, newTrackIds).catch(() => {});
+  },
+
+  deletePlaylist: (uid, playlistId) => {
+    deleteFirestorePlaylist(uid, playlistId).catch(() => {});
+  },
+
+  reset: () => {
+    set({ playlists: [], isLoaded: false });
   },
 }));

@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -45,7 +46,8 @@ export function HomeScreen({
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const playTrack = usePlayerStore(state => state.playTrack);
 
-  const userName = displayName || user?.displayName || user?.email || 'Listener';
+  const userName =
+    displayName || user?.displayName || user?.email || 'Listener';
   const avatarLetter = userName.charAt(0).toUpperCase();
 
   const handleTrackPress = (track: Track) => {
@@ -75,25 +77,13 @@ export function HomeScreen({
           },
         ]}
       >
-        <View
+        <Image
+          source={{ uri: track.artwork }}
           style={[
-            styles.trackNumber,
-            isActive
-              ? { backgroundColor: primaryAccent }
-              : styles.inactiveTrackNumber,
+            styles.trackThumb,
+            isActive && { borderColor: primaryAccent, borderWidth: 2 },
           ]}
-        >
-          <Text
-            style={[
-              styles.trackNumberText,
-              isActive
-                ? styles.activeTrackNumberText
-                : styles.inactiveTrackNumberText,
-            ]}
-          >
-            {String(index + 1).padStart(2, '0')}
-          </Text>
-        </View>
+        />
 
         <View style={styles.trackInfo}>
           <Text numberOfLines={1} style={styles.trackTitle}>
@@ -104,7 +94,10 @@ export function HomeScreen({
           </Text>
         </View>
 
-        <Text numberOfLines={1} style={[styles.genre, { color: primaryAccent }]}>
+        <Text
+          numberOfLines={1}
+          style={[styles.genre, { color: primaryAccent }]}
+        >
           {track.genre}
         </Text>
 
@@ -113,7 +106,9 @@ export function HomeScreen({
           onPress={event => handleAddTrack(event, track)}
           style={[styles.addButton, { borderColor: primaryAccent }]}
         >
-          <Text style={[styles.addButtonText, { color: primaryAccent }]}>+</Text>
+          <Text style={[styles.addButtonText, { color: primaryAccent }]}>
+            +
+          </Text>
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -163,13 +158,9 @@ export function HomeScreen({
                   },
                 ]}
               >
-                <View
-                  style={[
-                    styles.jumpArtwork,
-                    isActive
-                      ? { backgroundColor: primaryAccent }
-                      : styles.inactiveJumpArtwork,
-                  ]}
+                <Image
+                  source={{ uri: track.artwork }}
+                  style={styles.jumpArtwork}
                 />
                 <View style={styles.jumpInfo}>
                   <Text numberOfLines={1} style={styles.jumpTitle}>
@@ -287,9 +278,6 @@ const styles = StyleSheet.create({
     height: 68,
     width: 68,
   },
-  inactiveJumpArtwork: {
-    backgroundColor: '#18181D',
-  },
   jumpInfo: {
     flex: 1,
     minWidth: 0,
@@ -319,25 +307,10 @@ const styles = StyleSheet.create({
     minHeight: 72,
     padding: 12,
   },
-  trackNumber: {
-    alignItems: 'center',
-    borderRadius: 999,
-    height: 40,
-    justifyContent: 'center',
-    width: 40,
-  },
-  inactiveTrackNumber: {
-    backgroundColor: '#18181D',
-  },
-  trackNumberText: {
-    fontSize: 13,
-    fontWeight: '800',
-  },
-  activeTrackNumberText: {
-    color: '#000000',
-  },
-  inactiveTrackNumberText: {
-    color: '#FFFFFF',
+  trackThumb: {
+    borderRadius: 8,
+    height: 48,
+    width: 48,
   },
   trackInfo: {
     flex: 1,

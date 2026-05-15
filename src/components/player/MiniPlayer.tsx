@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -38,10 +39,21 @@ export function MiniPlayer({ onOpenPlayer }: MiniPlayerProps) {
       onPress={onOpenPlayer}
       style={[styles.container, webGlassStyle]}
     >
-      {/* Accent disc thumbnail */}
-      <View style={[styles.thumbnail, { backgroundColor: `${primaryAccent}33` }]}>
-        <View style={[styles.thumbnailDisc, { backgroundColor: primaryAccent }]} />
-      </View>
+      {/* Album artwork thumbnail */}
+      {currentTrack.artwork ? (
+        <Image
+          source={{ uri: currentTrack.artwork }}
+          style={styles.thumbnail}
+        />
+      ) : (
+        <View
+          style={[styles.thumbnail, { backgroundColor: `${primaryAccent}33` }]}
+        >
+          <View
+            style={[styles.thumbnailDisc, { backgroundColor: primaryAccent }]}
+          />
+        </View>
+      )}
 
       <View style={styles.trackInfo}>
         <Text numberOfLines={1} style={styles.title}>

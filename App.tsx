@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Animated,
   Modal,
   StyleSheet,
@@ -38,6 +37,103 @@ const TAB_CONFIG: { key: AppTab; icon: typeof Home }[] = [
   { key: 'Profile', icon: User },
 ];
 
+// ── Glass Spinner ──
+function GlassSpinner() {
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0.6)).current;
+  const primaryAccent = useThemeStore(state => state.primaryAccent);
+
+  useEffect(() => {
+    const spin = Animated.loop(
+      Animated.timing(spinAnim, {
+        toValue: 1,
+        duration: 1600,
+        useNativeDriver: true,
+      }),
+    );
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulseAnim, {
+          toValue: 0.6,
+          duration: 800,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+
+    spin.start();
+    pulse.start();
+
+    return () => {
+      spin.stop();
+      pulse.stop();
+    };
+  }, [spinAnim, pulseAnim]);
+
+  const spinInterpolate = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  return (
+    <View style={spinnerStyles.container}>
+      <View style={[spinnerStyles.card, webGlassStyle]}>
+        <Animated.View
+          style={[
+            spinnerStyles.ring,
+            {
+              borderColor: primaryAccent,
+              opacity: pulseAnim,
+              transform: [{ rotate: spinInterpolate }],
+            },
+          ]}
+        />
+        <Text style={spinnerStyles.text}>Loading Melodisc...</Text>
+      </View>
+    </View>
+  );
+}
+
+const spinnerStyles = StyleSheet.create({
+  container: {
+    alignItems: 'center',
+    backgroundColor: '#000000',
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    width: '100%',
+  },
+  card: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 24,
+    borderWidth: 1,
+    gap: 20,
+    padding: 40,
+  },
+  ring: {
+    borderRadius: 999,
+    borderWidth: 3,
+    borderBottomColor: 'transparent',
+    borderRightColor: 'transparent',
+    height: 48,
+    width: 48,
+  },
+  text: {
+    color: '#B3B3B3',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});
+
+// ── Main App ──
 function App() {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [currentTab, setCurrentTab] = useState<AppTab>('Home');
@@ -51,35 +147,41 @@ function App() {
   const isLoading = useAuthStore(state => state.isLoading);
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const primaryAccent = useThemeStore(state => state.primaryAccent);
+  const isHydrated = useThemeStore(state => state.isHydrated);
   const playlists = usePlaylistStore(state => state.playlists);
-  const createPlaylist = usePlaylistStore(state => state.createPlaylist);
-  const addTrackToPlaylist = usePlaylistStore(
-    state => state.addTrackToPlaylist,
-  );
+  const isPlaylistsLoaded = usePlaylistStore(state => state.isLoaded);
   const playerSlide = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     return subscribeToAuthChanges();
   }, []);
 
-  // Sync Firebase displayName into themeStore on login
+  // Hydration: theme + playlists from Firestore on login
   useEffect(() => {
-    if (user?.displayName) {
-      const currentName = useThemeStore.getState().displayName;
-
-      if (!currentName) {
-        useThemeStore.getState().setDisplayName(user.displayName);
-      }
-    }
-
     if (!user) {
+      useThemeStore.getState().resetHydration();
+      usePlaylistStore.getState().reset();
       setCurrentTab('Home');
       setIsPlayerVisible(false);
       setPlaylistModalTrack(null);
       setNewPlaylistName('');
+      return undefined;
     }
+
+    // Hydrate theme from Firestore
+    useThemeStore.getState().hydrateFromFirestore(user.uid);
+
+    // Subscribe to playlists (real-time)
+    const unsubPlaylists = usePlaylistStore
+      .getState()
+      .subscribeToUserPlaylists(user.uid);
+
+    return () => {
+      unsubPlaylists();
+    };
   }, [user]);
 
+  // Player slide animation
   useEffect(() => {
     if (!user || !isPlayerVisible) {
       return undefined;
@@ -120,21 +222,28 @@ function App() {
   };
 
   const handleAddToPlaylist = (playlistId: string) => {
-    if (!playlistModalTrack) {
+    if (!playlistModalTrack || !user) {
       return;
     }
 
-    addTrackToPlaylist(playlistModalTrack, playlistId);
+    usePlaylistStore
+      .getState()
+      .addTrackToPlaylist(user.uid, playlistModalTrack.id, playlistId);
     closePlaylistModal();
   };
 
-  const handleCreatePlaylist = () => {
-    if (!playlistModalTrack) {
+  const handleCreatePlaylist = async () => {
+    if (!playlistModalTrack || !user) {
       return;
     }
 
-    const playlistId = createPlaylist(newPlaylistName);
-    addTrackToPlaylist(playlistModalTrack, playlistId);
+    const playlistId = await usePlaylistStore
+      .getState()
+      .createPlaylist(user.uid, newPlaylistName);
+
+    usePlaylistStore
+      .getState()
+      .addTrackToPlaylist(user.uid, playlistModalTrack.id, playlistId);
     closePlaylistModal();
   };
 
@@ -175,24 +284,22 @@ function App() {
     ],
   };
 
-  // ── Loading ──
+  // ── Loading (auth or hydration) ──
   if (isLoading && !user) {
-    return (
-      <View style={styles.loadingScreen}>
-        <ActivityIndicator color="#BDEBFF" />
-        <Text style={styles.loadingText}>Loading Melodisc...</Text>
-      </View>
-    );
+    return <GlassSpinner />;
   }
 
   // ── Authenticated App Shell ──
   if (user) {
+    // Show spinner while Firestore hydration is in progress
+    if (!isHydrated || !isPlaylistsLoaded) {
+      return <GlassSpinner />;
+    }
+
     return (
       <View style={styles.appShell}>
         {/* Layer 0 – Current Screen */}
-        <View style={styles.screenLayer}>
-          {renderCurrentTab()}
-        </View>
+        <View style={styles.screenLayer}>{renderCurrentTab()}</View>
 
         {/* Layer 1 – MiniPlayer (floating above nav) */}
         {currentTrack ? <MiniPlayer onOpenPlayer={openPlayer} /> : null}
@@ -216,10 +323,7 @@ function App() {
                 <Icon color={iconColor} size={22} strokeWidth={2.2} />
                 <Text
                   numberOfLines={1}
-                  style={[
-                    styles.navLabel,
-                    { color: iconColor },
-                  ]}
+                  style={[styles.navLabel, { color: iconColor }]}
                 >
                   {key}
                 </Text>
@@ -250,9 +354,11 @@ function App() {
                     onPress={() => handleAddToPlaylist(playlist.id)}
                     style={styles.modalPlaylistButton}
                   >
-                    <Text style={styles.modalPlaylistName}>{playlist.name}</Text>
+                    <Text style={styles.modalPlaylistName}>
+                      {playlist.name}
+                    </Text>
                     <Text style={styles.modalPlaylistMeta}>
-                      {playlist.tracks.length} tracks
+                      {playlist.trackIds.length} tracks
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -310,19 +416,6 @@ function App() {
 }
 
 const styles = StyleSheet.create({
-  loadingScreen: {
-    alignItems: 'center',
-    backgroundColor: '#000000',
-    flex: 1,
-    height: '100%',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  loadingText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    marginTop: 12,
-  },
   appShell: {
     backgroundColor: '#000000',
     flex: 1,

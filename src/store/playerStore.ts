@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 
 import { tracks, type Track } from '../constants/tracks';
+import { useAuthStore } from './authStore';
+import { recordTrackPlay } from '../services/firebase/firestoreService';
 
 type PlayerState = {
   currentTrack: Track | null;
@@ -9,7 +11,9 @@ type PlayerState = {
   currentTime: number;
   duration: number;
   progress: number;
-  playTrack: (track: Track) => void;
+  /** When playing from a playlist, this holds the ordered track IDs */
+  playlistQueue: string[] | null;
+  playTrack: (track: Track, playlistTrackIds?: string[]) => void;
   togglePlay: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
@@ -29,6 +33,10 @@ function getWebAudio() {
   }
 
   return webAudio;
+}
+
+function resolveTrack(trackId: string): Track | null {
+  return tracks.find(t => t.id === trackId) ?? null;
 }
 
 function attachAudioListeners(set: (state: Partial<PlayerState>) => void) {
@@ -66,7 +74,10 @@ function attachAudioListeners(set: (state: Partial<PlayerState>) => void) {
   };
 }
 
-function playAudioForTrack(track: Track, set: (state: Partial<PlayerState>) => void) {
+function playAudioForTrack(
+  track: Track,
+  set: (state: Partial<PlayerState>) => void,
+) {
   const audio = getWebAudio();
 
   if (!audio) {
@@ -77,7 +88,7 @@ function playAudioForTrack(track: Track, set: (state: Partial<PlayerState>) => v
   attachAudioListeners(set);
 
   if (activeAudioTrackId !== track.id) {
-    audio.src = track.audioAsset;
+    audio.src = track.url;
     audio.currentTime = 0;
     activeAudioTrackId = track.id;
   }
@@ -92,6 +103,14 @@ function playAudioForTrack(track: Track, set: (state: Partial<PlayerState>) => v
     });
 }
 
+function firePlayCount(trackId: string) {
+  const user = useAuthStore.getState().user;
+
+  if (user) {
+    recordTrackPlay(user.uid, trackId).catch(() => {});
+  }
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   currentTrackIndex: -1,
@@ -99,19 +118,27 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTime: 0,
   duration: 0,
   progress: 0,
-  playTrack: track => {
-    const trackIndex = tracks.findIndex(item => item.id === track.id);
+  playlistQueue: null,
+
+  playTrack: (track, playlistTrackIds) => {
+    // Determine which list we navigate through
+    const queue = playlistTrackIds ?? null;
+    const sourceList = queue ?? tracks.map(t => t.id);
+    const trackIndex = sourceList.indexOf(track.id);
 
     set({
       currentTrack: track,
-      currentTrackIndex: trackIndex,
+      currentTrackIndex: trackIndex >= 0 ? trackIndex : 0,
       currentTime: 0,
       duration: 0,
       progress: 0,
+      playlistQueue: queue,
     });
 
     playAudioForTrack(track, set);
+    firePlayCount(track.id);
   },
+
   togglePlay: () => {
     const audio = getWebAudio();
     const currentTrack = get().currentTrack;
@@ -136,40 +163,58 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     audio.pause();
     set({ isPlaying: false });
   },
+
   nextTrack: () => {
     const state = get();
+    const queue = state.playlistQueue;
+    const sourceList = queue ?? tracks.map(t => t.id);
     const nextIndex =
       state.currentTrackIndex < 0
         ? 0
-        : (state.currentTrackIndex + 1) % tracks.length;
-    const nextTrack = tracks[nextIndex];
+        : (state.currentTrackIndex + 1) % sourceList.length;
+    const nextId = sourceList[nextIndex];
+    const next = resolveTrack(nextId);
+
+    if (!next) {
+      return;
+    }
 
     set({
-      currentTrack: nextTrack,
+      currentTrack: next,
       currentTrackIndex: nextIndex,
       currentTime: 0,
       duration: 0,
       progress: 0,
     });
 
-    playAudioForTrack(nextTrack, set);
+    playAudioForTrack(next, set);
+    firePlayCount(next.id);
   },
+
   previousTrack: () => {
     const state = get();
+    const queue = state.playlistQueue;
+    const sourceList = queue ?? tracks.map(t => t.id);
     const previousIndex =
       state.currentTrackIndex <= 0
-        ? tracks.length - 1
+        ? sourceList.length - 1
         : state.currentTrackIndex - 1;
-    const previousTrack = tracks[previousIndex];
+    const prevId = sourceList[previousIndex];
+    const prev = resolveTrack(prevId);
+
+    if (!prev) {
+      return;
+    }
 
     set({
-      currentTrack: previousTrack,
+      currentTrack: prev,
       currentTrackIndex: previousIndex,
       currentTime: 0,
       duration: 0,
       progress: 0,
     });
 
-    playAudioForTrack(previousTrack, set);
+    playAudioForTrack(prev, set);
+    firePlayCount(prev.id);
   },
 }));

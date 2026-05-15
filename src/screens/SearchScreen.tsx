@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -27,18 +28,18 @@ type GenreTile = {
 };
 
 const genreTiles: GenreTile[] = [
-  { name: 'Synthwave', gradient: ['#FF006E', '#8338EC'] },
-  { name: 'Lo-fi', gradient: ['#5038A0', '#2D1B69'] },
-  { name: 'Dream Pop', gradient: ['#7B2FF7', '#C471F5'] },
-  { name: 'Ambient', gradient: ['#0D324D', '#7F5A83'] },
-  { name: 'House', gradient: ['#F7971E', '#FFD200'] },
-  { name: 'Chillwave', gradient: ['#43CEA2', '#185A9D'] },
-  { name: 'Electropop', gradient: ['#E44D26', '#F16529'] },
-  { name: 'Post Rock', gradient: ['#2C3E50', '#4CA1AF'] },
-  { name: 'Future Garage', gradient: ['#0F2027', '#2C5364'] },
-  { name: 'Alt R&B', gradient: ['#B24592', '#F15F79'] },
-  { name: 'Nu Jazz', gradient: ['#1A2980', '#26D0CE'] },
-  { name: 'Cinematic', gradient: ['#141E30', '#243B55'] },
+  { name: 'K-Pop', gradient: ['#FF006E', '#8338EC'] },
+  { name: 'R&B', gradient: ['#B24592', '#F15F79'] },
+  { name: 'Neo-Soul', gradient: ['#5038A0', '#2D1B69'] },
+  { name: 'Jazz Pop', gradient: ['#1A2980', '#26D0CE'] },
+  { name: 'OPM', gradient: ['#43CEA2', '#185A9D'] },
+  { name: 'Synth-pop', gradient: ['#7B2FF7', '#C471F5'] },
+  { name: 'Rage Rap', gradient: ['#E44D26', '#F16529'] },
+  { name: 'Funk', gradient: ['#F7971E', '#FFD200'] },
+  { name: 'Pop', gradient: ['#0D324D', '#7F5A83'] },
+  { name: 'Jazz Standards', gradient: ['#141E30', '#243B55'] },
+  { name: 'Alt R&B', gradient: ['#2C3E50', '#4CA1AF'] },
+  { name: 'Disco Pop', gradient: ['#0F2027', '#2C5364'] },
 ];
 
 export function SearchScreen({
@@ -64,10 +65,12 @@ export function SearchScreen({
       );
     }
 
-    // If a genre tile was tapped, filter by that genre
+    // If a genre tile was tapped, filter by that genre (partial match)
     if (genreFilter) {
-      return tracks.filter(
-        track => track.genre.toLowerCase() === genreFilter.toLowerCase(),
+      const lowerFilter = genreFilter.toLowerCase();
+
+      return tracks.filter(track =>
+        track.genre.toLowerCase().includes(lowerFilter),
       );
     }
 
@@ -123,12 +126,19 @@ export function SearchScreen({
       {/* Genre filter chip */}
       {genreFilter ? (
         <View style={styles.genreChipRow}>
-          <View style={[styles.genreChip, { backgroundColor: `${primaryAccent}22` }]}>
+          <View
+            style={[
+              styles.genreChip,
+              { backgroundColor: `${primaryAccent}22` },
+            ]}
+          >
             <Text style={[styles.genreChipText, { color: primaryAccent }]}>
               {genreFilter}
             </Text>
             <TouchableOpacity activeOpacity={0.7} onPress={handleClearGenre}>
-              <Text style={[styles.genreChipClose, { color: primaryAccent }]}>✕</Text>
+              <Text style={[styles.genreChipClose, { color: primaryAccent }]}>
+                ✕
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -181,12 +191,14 @@ export function SearchScreen({
                     isActive && { borderColor: primaryAccent },
                   ]}
                 >
-                  <View
+                  <Image
+                    source={{ uri: track.artwork }}
                     style={[
                       styles.resultThumb,
-                      isActive
-                        ? { backgroundColor: primaryAccent }
-                        : styles.inactiveThumb,
+                      isActive && {
+                        borderColor: primaryAccent,
+                        borderWidth: 2,
+                      },
                     ]}
                   />
                   <View style={styles.resultText}>
@@ -203,7 +215,9 @@ export function SearchScreen({
                     onPress={event => handleAddTrack(event, track)}
                     style={[styles.addButton, { borderColor: primaryAccent }]}
                   >
-                    <Text style={[styles.addButtonText, { color: primaryAccent }]}>
+                    <Text
+                      style={[styles.addButtonText, { color: primaryAccent }]}
+                    >
                       +
                     </Text>
                   </TouchableOpacity>
@@ -308,8 +322,8 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#77777D',
     fontSize: 14,
-    textAlign: 'center',
     marginTop: 40,
+    textAlign: 'center',
   },
   resultCard: {
     alignItems: 'center',
@@ -326,9 +340,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     height: 46,
     width: 46,
-  },
-  inactiveThumb: {
-    backgroundColor: '#18181D',
   },
   resultText: {
     flex: 1,

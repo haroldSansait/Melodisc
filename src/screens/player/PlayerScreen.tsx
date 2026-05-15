@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +13,7 @@ import {
   SkipBack,
   SkipForward,
 } from 'lucide-react-native';
+import { animate, type JSAnimation } from 'animejs';
 
 import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -39,6 +41,46 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
   const nextTrack = usePlayerStore(state => state.nextTrack);
   const previousTrack = usePlayerStore(state => state.previousTrack);
   const togglePlay = usePlayerStore(state => state.togglePlay);
+  const discRef = useRef<View>(null);
+  const pulseAnimRef = useRef<JSAnimation | null>(null);
+
+  // Antigravity Pulse: animejs breathing animation on the disc
+  useEffect(() => {
+    const discElement = discRef.current;
+
+    if (!discElement) {
+      return undefined;
+    }
+
+    if (isPlaying) {
+      pulseAnimRef.current = animate(discElement, {
+        scale: [1.0, 1.05],
+        duration: 1200,
+        ease: 'inOutSine',
+        alternate: true,
+        loop: true,
+      });
+    } else {
+      if (pulseAnimRef.current) {
+        pulseAnimRef.current.pause();
+        pulseAnimRef.current = null;
+      }
+
+      // Reset scale
+      animate(discElement, {
+        scale: 1.0,
+        duration: 300,
+        ease: 'outQuad',
+      });
+    }
+
+    return () => {
+      if (pulseAnimRef.current) {
+        pulseAnimRef.current.pause();
+        pulseAnimRef.current = null;
+      }
+    };
+  }, [isPlaying]);
 
   return (
     <View style={[styles.screen, webBlurLayerStyle]}>
@@ -56,12 +98,22 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Visual stage – accent glow disc */}
+        {/* Visual stage – artwork or accent disc with animejs pulse */}
         <View style={[styles.visualStage, { borderColor: `${primaryAccent}33` }]}>
-          <View style={[styles.glowRing, { shadowColor: primaryAccent }]}>
-            <View style={[styles.disc, { backgroundColor: primaryAccent }]}>
-              <View style={styles.discHole} />
-            </View>
+          <View
+            ref={discRef}
+            style={[styles.glowRing, { shadowColor: primaryAccent }]}
+          >
+            {currentTrack?.artwork ? (
+              <Image
+                source={{ uri: currentTrack.artwork }}
+                style={styles.artworkImage}
+              />
+            ) : (
+              <View style={[styles.disc, { backgroundColor: primaryAccent }]}>
+                <View style={styles.discHole} />
+              </View>
+            )}
           </View>
         </View>
 
@@ -202,17 +254,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     justifyContent: 'center',
     marginVertical: 16,
+    overflow: 'hidden',
     width: '100%',
   },
   glowRing: {
     alignItems: 'center',
-    borderRadius: 999,
-    height: 140,
+    borderRadius: 20,
+    height: '80%',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.5,
     shadowRadius: 30,
-    width: 140,
+    width: '80%',
+  },
+  artworkImage: {
+    borderRadius: 16,
+    height: '100%',
+    width: '100%',
   },
   disc: {
     alignItems: 'center',

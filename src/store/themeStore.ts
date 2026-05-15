@@ -2,41 +2,91 @@ import { updateProfile } from 'firebase/auth';
 import { create } from 'zustand';
 
 import { useAuthStore } from './authStore';
+import {
+  fetchUserProfile,
+  saveUserProfile,
+} from '../services/firebase/firestoreService';
 
 type ThemeState = {
   primaryAccent: string;
   accentColor: string;
   displayName: string;
+  isHydrated: boolean;
   setPrimaryAccent: (primaryAccent: string) => void;
   setAccentColor: (accentColor: string) => void;
   setDisplayName: (name: string) => void;
+  hydrateFromFirestore: (uid: string) => Promise<void>;
+  resetHydration: () => void;
 };
 
 export const useThemeStore = create<ThemeState>(set => ({
   primaryAccent: '#BDEBFF',
   accentColor: '#BDEBFF',
   displayName: '',
-  setPrimaryAccent: primaryAccent =>
-    set({
-      primaryAccent,
-      accentColor: primaryAccent,
-    }),
-  setAccentColor: accentColor =>
-    set({
-      primaryAccent: accentColor,
-      accentColor,
-    }),
-  setDisplayName: name => {
-    set({ displayName: name });
+  isHydrated: false,
 
-    // Hybrid sync: persist to Firebase in the background
+  setPrimaryAccent: primaryAccent => {
+    set({ primaryAccent, accentColor: primaryAccent });
+
+    // Background sync to Firestore
     const user = useAuthStore.getState().user;
 
     if (user) {
-      updateProfile(user, { displayName: name }).catch(() => {
-        // Silently fail – local value is already applied.
-        // A future retry/queue mechanism could be added here.
+      saveUserProfile(user.uid, { primaryAccent }).catch(() => {
+        // Silently fail — local value is already applied.
       });
     }
+  },
+
+  setAccentColor: accentColor => {
+    set({ primaryAccent: accentColor, accentColor });
+
+    const user = useAuthStore.getState().user;
+
+    if (user) {
+      saveUserProfile(user.uid, { primaryAccent: accentColor }).catch(() => {});
+    }
+  },
+
+  setDisplayName: name => {
+    // 1. Instant local update
+    set({ displayName: name });
+
+    const user = useAuthStore.getState().user;
+
+    if (!user) {
+      return;
+    }
+
+    // 2. Background sync: Firebase Auth displayName
+    updateProfile(user, { displayName: name }).catch(() => {});
+
+    // 3. Background sync: Firestore user profile doc
+    saveUserProfile(user.uid, { displayName: name }).catch(() => {});
+  },
+
+  hydrateFromFirestore: async uid => {
+    try {
+      const profile = await fetchUserProfile(uid);
+
+      if (profile) {
+        set(state => ({
+          primaryAccent: profile.primaryAccent ?? state.primaryAccent,
+          accentColor: profile.primaryAccent ?? state.accentColor,
+          displayName: profile.displayName ?? state.displayName,
+        }));
+      }
+    } finally {
+      set({ isHydrated: true });
+    }
+  },
+
+  resetHydration: () => {
+    set({
+      isHydrated: false,
+      displayName: '',
+      primaryAccent: '#BDEBFF',
+      accentColor: '#BDEBFF',
+    });
   },
 }));
