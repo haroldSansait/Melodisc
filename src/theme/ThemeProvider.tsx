@@ -35,16 +35,16 @@ type ThemeProviderProps = {
 };
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const accentColor = useThemeStore(state => state.accentColor);
+  const primaryAccent = useThemeStore(state => state.primaryAccent);
 
   const theme = useMemo<MelodiscTheme>(() => {
     return {
       colors: {
         ...baseColors,
         accent: {
-          primary: accentColor,
-          secondary: accentColor,
-          glow: accentColor,
+          primary: primaryAccent,
+          secondary: primaryAccent,
+          glow: primaryAccent,
           deep: '#1DADEB',
           soft: '#E6F8FF',
         },
@@ -56,11 +56,11 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         ...shadows,
         accentGlow: {
           ...shadows.accentGlow,
-          shadowColor: accentColor,
+          shadowColor: primaryAccent,
         },
       },
     };
-  }, [accentColor]);
+  }, [primaryAccent]);
 
   return (
     <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>

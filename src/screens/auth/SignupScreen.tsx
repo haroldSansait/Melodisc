@@ -1,25 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  type ViewStyle,
-  type View as ViewType,
 } from 'react-native';
-import * as anime from 'animejs';
 
 import { googleLogin, signupEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
+import { webShadowStyle } from '../../theme/glassStyles';
 
 type SignupScreenProps = {
   onShowLogin: () => void;
 };
 
 export function SignupScreen({ onShowLogin }: SignupScreenProps) {
-  const accentColor = useThemeStore(state => state.accentColor);
+  const primaryAccent = useThemeStore(state => state.primaryAccent);
   const authError = useAuthStore(state => state.authError);
   const isLoading = useAuthStore(state => state.isLoading);
   const setAuthError = useAuthStore(state => state.setAuthError);
@@ -27,32 +26,21 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const cardRef = useRef<ViewType | null>(null);
-  const animationRef = useRef<ReturnType<typeof anime.animate> | null>(null);
+  const cardEntrance = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const cardTarget = cardRef.current as Parameters<
-      typeof anime.animate
-    >[0] | null;
-
-    if (!cardTarget) {
-      return undefined;
-    }
-
-    animationRef.current = anime.animate(cardTarget, {
-      opacity: [1, 1],
-      translateY: [20, 0],
-      scale: [0.96, 1],
+    const animation = Animated.timing(cardEntrance, {
+      toValue: 1,
       duration: 650,
-      ease: 'easeOutExpo',
+      useNativeDriver: true,
     });
 
+    animation.start();
+
     return () => {
-      animationRef.current?.pause();
-      anime.remove(cardTarget);
-      animationRef.current = null;
+      animation.stop();
     };
-  }, []);
+  }, [cardEntrance]);
 
   const handleSignup = async () => {
     if (password !== confirmPassword) {
@@ -67,6 +55,25 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
     await googleLogin();
   };
 
+  const accentTextStyle = { color: primaryAccent };
+  const cardAnimatedStyle = {
+    opacity: cardEntrance,
+    transform: [
+      {
+        translateY: cardEntrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [20, 0],
+        }),
+      },
+      {
+        scale: cardEntrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.96, 1],
+        }),
+      },
+    ],
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -74,7 +81,7 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
         <Text style={styles.subtitle}>Create an account and start listening.</Text>
       </View>
 
-      <View ref={cardRef} style={[styles.card, webShadowStyle]}>
+      <Animated.View style={[styles.card, webShadowStyle, cardAnimatedStyle]}>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -120,7 +127,7 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
           onPress={handleSignup}
           style={[
             styles.primaryButton,
-            { backgroundColor: accentColor },
+            { backgroundColor: primaryAccent },
             isLoading && styles.disabledButton,
           ]}
         >
@@ -133,7 +140,7 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
           activeOpacity={0.82}
           disabled={isLoading}
           onPress={handleGoogleLogin}
-          style={[styles.secondaryButton, { borderColor: accentColor }]}
+          style={[styles.secondaryButton, { borderColor: primaryAccent }]}
         >
           <Text style={styles.secondaryButtonText}>Continue with Google</Text>
         </TouchableOpacity>
@@ -141,10 +148,10 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
         <TouchableOpacity activeOpacity={0.72} onPress={onShowLogin}>
           <Text style={styles.switchText}>
             Already have an account?{' '}
-            <Text style={{ color: accentColor }}>Log in</Text>
+            <Text style={accentTextStyle}>Log in</Text>
           </Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -238,6 +245,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const webShadowStyle = {
-  boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.35)',
-} as unknown as ViewStyle;
+// webShadowStyle imported from shared glassStyles

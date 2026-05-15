@@ -1,57 +1,45 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  type ViewStyle,
-  type View as ViewType,
 } from 'react-native';
-import * as anime from 'animejs';
 
 import { googleLogin, loginEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
+import { webShadowStyle } from '../../theme/glassStyles';
 
 type LoginScreenProps = {
   onShowSignup: () => void;
 };
 
 export function LoginScreen({ onShowSignup }: LoginScreenProps) {
-  const accentColor = useThemeStore(state => state.accentColor);
+  const primaryAccent = useThemeStore(state => state.primaryAccent);
   const authError = useAuthStore(state => state.authError);
   const isLoading = useAuthStore(state => state.isLoading);
   const setAuthError = useAuthStore(state => state.setAuthError);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const cardRef = useRef<ViewType | null>(null);
-  const animationRef = useRef<ReturnType<typeof anime.animate> | null>(null);
+  const cardEntrance = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const cardTarget = cardRef.current as Parameters<
-      typeof anime.animate
-    >[0] | null;
-
-    if (!cardTarget) {
-      return undefined;
-    }
-
-    animationRef.current = anime.animate(cardTarget, {
-      opacity: [1, 1],
-      translateY: [20, 0],
-      scale: [0.96, 1],
+    const animation = Animated.timing(cardEntrance, {
+      toValue: 1,
       duration: 650,
-      ease: 'easeOutExpo',
+      useNativeDriver: true,
     });
 
+    animation.start();
+
     return () => {
-      animationRef.current?.pause();
-      anime.remove(cardTarget);
-      animationRef.current = null;
+      animation.stop();
     };
-  }, []);
+  }, [cardEntrance]);
 
   const handleLogin = async () => {
     await loginEmail(email.trim(), password);
@@ -61,6 +49,25 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
     await googleLogin();
   };
 
+  const accentTextStyle = { color: primaryAccent };
+  const cardAnimatedStyle = {
+    opacity: cardEntrance,
+    transform: [
+      {
+        translateY: cardEntrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [20, 0],
+        }),
+      },
+      {
+        scale: cardEntrance.interpolate({
+          inputRange: [0, 1],
+          outputRange: [0.96, 1],
+        }),
+      },
+    ],
+  };
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
@@ -68,7 +75,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
         <Text style={styles.subtitle}>Your music, your mood, one tap away.</Text>
       </View>
 
-      <View ref={cardRef} style={[styles.card, webShadowStyle]}>
+      <Animated.View style={[styles.card, webShadowStyle, cardAnimatedStyle]}>
         <TextInput
           autoCapitalize="none"
           keyboardType="email-address"
@@ -102,7 +109,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
           onPress={handleLogin}
           style={[
             styles.primaryButton,
-            { backgroundColor: accentColor },
+            { backgroundColor: primaryAccent },
             isLoading && styles.disabledButton,
           ]}
         >
@@ -115,17 +122,17 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
           activeOpacity={0.82}
           disabled={isLoading}
           onPress={handleGoogleLogin}
-          style={[styles.secondaryButton, { borderColor: accentColor }]}
+          style={[styles.secondaryButton, { borderColor: primaryAccent }]}
         >
           <Text style={styles.secondaryButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity activeOpacity={0.72} onPress={onShowSignup}>
           <Text style={styles.switchText}>
-            New to Melodisc? <Text style={{ color: accentColor }}>Sign up</Text>
+            New to Melodisc? <Text style={accentTextStyle}>Sign up</Text>
           </Text>
         </TouchableOpacity>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -219,6 +226,4 @@ const styles = StyleSheet.create({
   },
 });
 
-const webShadowStyle = {
-  boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.35)',
-} as unknown as ViewStyle;
+// webShadowStyle imported from shared glassStyles
