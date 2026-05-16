@@ -14,6 +14,9 @@ import {
   Check,
   ListMusic,
   Pencil,
+  Play,
+  Plus,
+  Shuffle,
   Trash2,
   X,
 } from 'lucide-react-native';
@@ -29,6 +32,15 @@ function resolveTrack(trackId: string): Track | null {
   return tracks.find(t => t.id === trackId) ?? null;
 }
 
+function shuffleArray<T>(arr: T[]): T[] {
+  const shuffled = [...arr];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export function LibraryScreen() {
   const primaryAccent = useThemeStore(state => state.primaryAccent);
   const user = useAuthStore(state => state.user);
@@ -40,16 +52,42 @@ export function LibraryScreen() {
     null,
   );
   const [renameInput, setRenameInput] = useState('');
+  const [addingToPlaylistId, setAddingToPlaylistId] = useState<string | null>(
+    null,
+  );
+  const [suggestedTracks, setSuggestedTracks] = useState<Track[]>([]);
 
   const uid = user?.uid;
+
+  // ── Play Actions ──
 
   const handlePlayFromPlaylist = (track: Track, playlistTrackIds: string[]) => {
     playTrack(track, playlistTrackIds);
   };
 
+  const handlePlayAll = (playlistTrackIds: string[]) => {
+    if (playlistTrackIds.length === 0) return;
+    const firstTrack = resolveTrack(playlistTrackIds[0]);
+    if (firstTrack) {
+      playTrack(firstTrack, playlistTrackIds);
+    }
+  };
+
+  const handleShufflePlay = (playlistTrackIds: string[]) => {
+    if (playlistTrackIds.length === 0) return;
+    const shuffled = shuffleArray(playlistTrackIds);
+    const firstTrack = resolveTrack(shuffled[0]);
+    if (firstTrack) {
+      playTrack(firstTrack, shuffled);
+    }
+  };
+
+  // ── Edit Actions ──
+
   const handleStartEditing = (playlistId: string, currentName: string) => {
     setEditingPlaylistId(playlistId);
     setRenameInput(currentName);
+    setAddingToPlaylistId(null);
   };
 
   const handleStopEditing = () => {
@@ -108,6 +146,30 @@ export function LibraryScreen() {
     usePlaylistStore.getState().reorderPlaylist(uid, playlistId, newIds);
   };
 
+  // ── Add Tracks Actions ──
+
+  const handleToggleAddTracks = (playlistId: string) => {
+    if (addingToPlaylistId === playlistId) {
+      setAddingToPlaylistId(null);
+      setSuggestedTracks([]);
+    } else {
+      const playlist = playlists.find(item => item.id === playlistId);
+      const existingTrackIds = new Set(playlist?.trackIds ?? []);
+      const availableTracks = tracks.filter(
+        track => !existingTrackIds.has(track.id),
+      );
+
+      setAddingToPlaylistId(playlistId);
+      setEditingPlaylistId(null);
+      setSuggestedTracks(shuffleArray(availableTracks).slice(0, 6));
+    }
+  };
+
+  const handleAddTrackToPlaylist = (playlistId: string, trackId: string) => {
+    if (!uid) return;
+    usePlaylistStore.getState().addTrackToPlaylist(uid, trackId, playlistId);
+  };
+
   return (
     <View style={styles.screen}>
       <ScrollView
@@ -129,6 +191,7 @@ export function LibraryScreen() {
         <View style={styles.playlistList}>
           {playlists.map(playlist => {
             const isEditing = editingPlaylistId === playlist.id;
+            const isAddingTracks = addingToPlaylistId === playlist.id;
             const resolvedTracks = playlist.trackIds
               .map(resolveTrack)
               .filter(Boolean) as Track[];
@@ -192,9 +255,61 @@ export function LibraryScreen() {
                     </View>
                   )}
 
-                  {/* Edit / Delete buttons */}
+                  {/* Action buttons row */}
                   {!isEditing ? (
                     <View style={styles.headerActions}>
+                      {/* Play All */}
+                      <TouchableOpacity
+                        activeOpacity={0.78}
+                        onPress={() => handlePlayAll(playlist.trackIds)}
+                        disabled={resolvedTracks.length === 0}
+                        style={[
+                          styles.iconBtn,
+                          resolvedTracks.length === 0 && styles.disabledBtn,
+                          { backgroundColor: primaryAccent },
+                        ]}
+                      >
+                        <Play
+                          color="#000000"
+                          fill="#000000"
+                          size={14}
+                          strokeWidth={2}
+                        />
+                      </TouchableOpacity>
+                      {/* Shuffle */}
+                      <TouchableOpacity
+                        activeOpacity={0.78}
+                        onPress={() => handleShufflePlay(playlist.trackIds)}
+                        disabled={resolvedTracks.length < 2}
+                        style={[
+                          styles.iconBtn,
+                          resolvedTracks.length < 2 && styles.disabledBtn,
+                        ]}
+                      >
+                        <Shuffle
+                          color={primaryAccent}
+                          size={14}
+                          strokeWidth={2}
+                        />
+                      </TouchableOpacity>
+                      {/* Add Tracks */}
+                      <TouchableOpacity
+                        activeOpacity={0.78}
+                        onPress={() => handleToggleAddTracks(playlist.id)}
+                        style={[
+                          styles.iconBtn,
+                          isAddingTracks && {
+                            backgroundColor: `${primaryAccent}33`,
+                          },
+                        ]}
+                      >
+                        <Plus
+                          color={primaryAccent}
+                          size={16}
+                          strokeWidth={2.5}
+                        />
+                      </TouchableOpacity>
+                      {/* Edit */}
                       <TouchableOpacity
                         activeOpacity={0.78}
                         onPress={() =>
@@ -208,6 +323,7 @@ export function LibraryScreen() {
                           strokeWidth={2}
                         />
                       </TouchableOpacity>
+                      {/* Delete */}
                       <TouchableOpacity
                         activeOpacity={0.78}
                         onPress={() => handleDeletePlaylist(playlist.id)}
@@ -219,12 +335,114 @@ export function LibraryScreen() {
                   ) : null}
                 </View>
 
+                {/* Add Tracks Browser */}
+                {isAddingTracks && (
+                  <View style={styles.addTracksSection}>
+                    <View style={styles.addTracksHeader}>
+                      <Text
+                        style={[styles.addTracksTitle, { color: primaryAccent }]}
+                      >
+                        Add Tracks
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.78}
+                        onPress={() => {
+                          setAddingToPlaylistId(null);
+                          setSuggestedTracks([]);
+                        }}
+                      >
+                        <X color="#FFFFFF" size={18} strokeWidth={2} />
+                      </TouchableOpacity>
+                    </View>
+                    <Text style={styles.suggestedSongsLabel}>
+                      Suggested Songs
+                    </Text>
+                    <View style={styles.addTracksList}>
+                      {suggestedTracks.length === 0 ? (
+                        <Text style={styles.emptyText}>
+                          No more songs to suggest for this playlist.
+                        </Text>
+                      ) : null}
+                      {suggestedTracks.map(track => {
+                        const alreadyAdded = playlist.trackIds.includes(
+                          track.id,
+                        );
+
+                        return (
+                          <View key={track.id} style={styles.addTrackRow}>
+                            <Image
+                              source={{ uri: track.artwork }}
+                              style={styles.addTrackArt}
+                            />
+                            <View style={styles.addTrackInfo}>
+                              <Text
+                                numberOfLines={1}
+                                style={styles.addTrackTitle}
+                              >
+                                {track.title}
+                              </Text>
+                              <Text
+                                numberOfLines={1}
+                                style={styles.addTrackArtist}
+                              >
+                                {track.artist}
+                              </Text>
+                            </View>
+                            {alreadyAdded ? (
+                              <View
+                                style={[
+                                  styles.addedBadge,
+                                  { backgroundColor: `${primaryAccent}22` },
+                                ]}
+                              >
+                                <Check
+                                  color={primaryAccent}
+                                  size={12}
+                                  strokeWidth={3}
+                                />
+                                <Text
+                                  style={[
+                                    styles.addedText,
+                                    { color: primaryAccent },
+                                  ]}
+                                >
+                                  Added
+                                </Text>
+                              </View>
+                            ) : (
+                              <TouchableOpacity
+                                activeOpacity={0.78}
+                                onPress={() =>
+                                  handleAddTrackToPlaylist(
+                                    playlist.id,
+                                    track.id,
+                                  )
+                                }
+                                style={[
+                                  styles.addTrackBtn,
+                                  { borderColor: primaryAccent },
+                                ]}
+                              >
+                                <Plus
+                                  color={primaryAccent}
+                                  size={14}
+                                  strokeWidth={2.5}
+                                />
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
                 {/* Tracks */}
-                {resolvedTracks.length === 0 ? (
+                {!isAddingTracks && resolvedTracks.length === 0 ? (
                   <Text style={styles.emptyText}>
-                    Add tracks with the + button on Home or Search.
+                    No tracks yet — tap the + button above to browse and add songs.
                   </Text>
-                ) : (
+                ) : !isAddingTracks ? (
                   <View style={styles.savedTrackList}>
                     {resolvedTracks.map((track, index) => {
                       const isActive = currentTrack?.id === track.id;
@@ -340,7 +558,7 @@ export function LibraryScreen() {
                       );
                     })}
                   </View>
-                )}
+                ) : null}
               </View>
             );
           })}
@@ -459,6 +677,82 @@ const styles = StyleSheet.create({
     color: '#77777D',
     fontSize: 13,
   },
+
+  /* ── Add Tracks Section ── */
+  addTracksSection: {
+    gap: 10,
+    paddingTop: 4,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  addTracksHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  addTracksTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  suggestedSongsLabel: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  addTracksList: {
+    gap: 4,
+    maxHeight: 320,
+  },
+  addTrackRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 46,
+    paddingVertical: 3,
+  },
+  addTrackArt: {
+    borderRadius: 6,
+    height: 38,
+    width: 38,
+  },
+  addTrackInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  addTrackTitle: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  addTrackArtist: {
+    color: '#B3B3B3',
+    fontSize: 11,
+    marginTop: 1,
+  },
+  addTrackBtn: {
+    alignItems: 'center',
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 28,
+    justifyContent: 'center',
+    width: 28,
+  },
+  addedBadge: {
+    alignItems: 'center',
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  addedText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+
+  /* ── Track List ── */
   savedTrackList: {
     gap: 4,
     marginTop: 4,

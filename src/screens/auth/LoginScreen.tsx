@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Image,
   StyleSheet,
   Text,
   TextInput,
@@ -8,6 +9,7 @@ import {
   View,
 } from 'react-native';
 
+import { MelodiscLogo } from '../../components/MelodiscLogo';
 import { googleLogin, loginEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
@@ -71,6 +73,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
+        <MelodiscLogo size={72} accentColor={primaryAccent} />
         <Text style={styles.logo}>Melodisc</Text>
         <Text style={styles.subtitle}>Your music, your mood, one tap away.</Text>
       </View>
@@ -124,6 +127,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
           onPress={handleGoogleLogin}
           style={[styles.secondaryButton, { borderColor: primaryAccent }]}
         >
+          <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png' }} style={styles.googleIcon} />
           <Text style={styles.secondaryButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
@@ -151,18 +155,22 @@ const styles = StyleSheet.create({
     marginBottom: 28,
     width: '100%',
     maxWidth: 420,
+    alignItems: 'center',
   },
+
   logo: {
     color: '#FFFFFF',
     fontSize: 34,
     fontWeight: '800',
     letterSpacing: 0,
+    textAlign: 'center',
   },
   subtitle: {
     color: '#FFFFFF',
     fontSize: 15,
     lineHeight: 22,
     marginTop: 8,
+    textAlign: 'center',
   },
   card: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
@@ -208,10 +216,16 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: 'center',
+    flexDirection: 'row',
     borderRadius: 999,
     borderWidth: 1,
     justifyContent: 'center',
     minHeight: 52,
+  },
+  googleIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 10,
   },
   secondaryButtonText: {
     color: '#FFFFFF',

@@ -8,7 +8,12 @@ import {
   type User,
 } from 'firebase/auth';
 
-import { useAuthStore } from '../../store/authStore';
+import {
+  clearCachedAuthContext,
+  useAuthStore,
+  type AuthUser,
+} from '../../store/authStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { getFriendlyErrorMessage } from '../../utils/errorHelpers';
 import { auth, googleWebClientId } from './firebaseConfig';
 
@@ -37,7 +42,7 @@ function beginAuthRequest() {
   store.setAuthError(null);
 }
 
-function completeAuthRequest(user: User | null) {
+function completeAuthRequest(user: AuthUser | null) {
   const store = useAuthStore.getState();
   store.setUser(user);
   store.setAuthError(null);
@@ -143,6 +148,13 @@ export async function logout(): Promise<AuthResult> {
   beginAuthRequest();
 
   try {
+    const player = usePlayerStore.getState();
+
+    if (player && typeof player.reset === 'function') {
+      player.reset();
+    }
+
+    clearCachedAuthContext();
     await signOut(auth);
     completeAuthRequest(null);
 

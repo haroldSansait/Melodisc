@@ -25,7 +25,11 @@ import { useAuthStore } from './src/store/authStore';
 import { usePlayerStore } from './src/store/playerStore';
 import { usePlaylistStore } from './src/store/playlistStore';
 import { useThemeStore } from './src/store/themeStore';
-import { webGlassStyle, webGlassStyleStrong } from './src/theme/glassStyles';
+import {
+  webBlurLayerStyle,
+  webGlassStyle,
+  webGlassStyleStrong,
+} from './src/theme/glassStyles';
 
 type AuthView = 'login' | 'signup';
 type AppTab = 'Home' | 'Search' | 'Library' | 'Profile';
@@ -151,6 +155,7 @@ function App() {
   const playlists = usePlaylistStore(state => state.playlists);
   const isPlaylistsLoaded = usePlaylistStore(state => state.isLoaded);
   const playerSlide = useRef(new Animated.Value(0)).current;
+  const playerBackdropOpacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     return subscribeToAuthChanges();
@@ -192,24 +197,40 @@ function App() {
       duration: 800,
       useNativeDriver: true,
     });
+    const backdropAnimation = Animated.timing(playerBackdropOpacity, {
+      toValue: 1,
+      duration: 320,
+      useNativeDriver: true,
+    });
 
     animation.start();
+    backdropAnimation.start();
 
     return () => {
       animation.stop();
+      backdropAnimation.stop();
     };
-  }, [isPlayerVisible, playerSlide, user]);
+  }, [isPlayerVisible, playerBackdropOpacity, playerSlide, user]);
 
   const openPlayer = () => {
+    playerSlide.setValue(0);
+    playerBackdropOpacity.setValue(0);
     setIsPlayerVisible(true);
   };
 
   const closePlayer = () => {
-    Animated.timing(playerSlide, {
-      toValue: 0,
-      duration: 520,
-      useNativeDriver: true,
-    }).start(({ finished }) => {
+    Animated.parallel([
+      Animated.timing(playerSlide, {
+        toValue: 0,
+        duration: 520,
+        useNativeDriver: true,
+      }),
+      Animated.timing(playerBackdropOpacity, {
+        toValue: 0,
+        duration: 260,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
       if (finished) {
         setIsPlayerVisible(false);
       }
@@ -397,11 +418,21 @@ function App() {
 
         {/* Layer 3 – Full Player Overlay */}
         {isPlayerVisible ? (
-          <Animated.View
-            style={[styles.playerOverlay, playerOverlayAnimatedStyle]}
-          >
-            <PlayerScreen onBackHome={closePlayer} />
-          </Animated.View>
+          <>
+            <Animated.View
+              pointerEvents="none"
+              style={[
+                styles.playerBackdrop,
+                webBlurLayerStyle,
+                { opacity: playerBackdropOpacity },
+              ]}
+            />
+            <Animated.View
+              style={[styles.playerOverlay, playerOverlayAnimatedStyle]}
+            >
+              <PlayerScreen onBackHome={closePlayer} />
+            </Animated.View>
+          </>
         ) : null}
       </View>
     );
@@ -557,6 +588,14 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     zIndex: 100,
+  },
+  playerBackdrop: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    zIndex: 99,
   },
 });
 

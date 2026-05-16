@@ -1,4 +1,4 @@
-import { updateProfile } from 'firebase/auth';
+import { updateProfile, type User } from 'firebase/auth';
 import { create } from 'zustand';
 
 import { useAuthStore } from './authStore';
@@ -7,7 +7,11 @@ import {
   saveUserProfile,
 } from '../services/firebase/firestoreService';
 
+type EnvironmentType = 'default' | 'warm_vibe';
+
 type ThemeState = {
+  environmentTheme: EnvironmentType;
+  setEnvironmentTheme: (theme: EnvironmentType) => void;
   primaryAccent: string;
   accentColor: string;
   displayName: string;
@@ -19,7 +23,19 @@ type ThemeState = {
   resetHydration: () => void;
 };
 
+function isFirebaseUser(user: unknown): user is User {
+  return (
+    typeof user === 'object' &&
+    user !== null &&
+    'getIdToken' in user &&
+    typeof user.getIdToken === 'function'
+  );
+}
+
 export const useThemeStore = create<ThemeState>(set => ({
+  environmentTheme: 'default',
+  setEnvironmentTheme: (theme) => set({ environmentTheme: theme }),
+
   primaryAccent: '#BDEBFF',
   accentColor: '#BDEBFF',
   displayName: '',
@@ -59,7 +75,9 @@ export const useThemeStore = create<ThemeState>(set => ({
     }
 
     // 2. Background sync: Firebase Auth displayName
-    updateProfile(user, { displayName: name }).catch(() => {});
+    if (isFirebaseUser(user)) {
+      updateProfile(user, { displayName: name }).catch(() => {});
+    }
 
     // 3. Background sync: Firestore user profile doc
     saveUserProfile(user.uid, { displayName: name }).catch(() => {});

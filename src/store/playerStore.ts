@@ -11,12 +11,18 @@ type PlayerState = {
   currentTime: number;
   duration: number;
   progress: number;
+  /** Dynamically updated recent listening history (max 6) */
+  recentTracks: Track[];
   /** When playing from a playlist, this holds the ordered track IDs */
   playlistQueue: string[] | null;
+  /** Flag set true while auto-advance eject animation runs */
+  isAutoAdvancing: boolean;
   playTrack: (track: Track, playlistTrackIds?: string[]) => void;
   togglePlay: () => void;
   nextTrack: () => void;
   previousTrack: () => void;
+  autoAdvanceToNext: () => void;
+  reset: () => void;
 };
 
 let webAudio: HTMLAudioElement | null = null;
@@ -64,7 +70,7 @@ function attachAudioListeners(set: (state: Partial<PlayerState>) => void) {
   };
 
   audio.onended = () => {
-    usePlayerStore.getState().nextTrack();
+    usePlayerStore.getState().autoAdvanceToNext();
   };
 
   audio.onerror = () => {
@@ -111,6 +117,28 @@ function firePlayCount(trackId: string) {
   }
 }
 
+function resetAudioEngine() {
+  if (!webAudio) {
+    activeAudioTrackId = null;
+    return;
+  }
+
+  try {
+    webAudio.pause();
+    webAudio.currentTime = 0;
+    webAudio.ontimeupdate = null;
+    webAudio.onloadedmetadata = null;
+    webAudio.onended = null;
+    webAudio.onerror = null;
+    webAudio.removeAttribute('src');
+    webAudio.load();
+  } catch {
+    // Browser audio teardown can throw if the element is mid-load.
+  }
+
+  activeAudioTrackId = null;
+}
+
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTrack: null,
   currentTrackIndex: -1,
@@ -118,13 +146,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTime: 0,
   duration: 0,
   progress: 0,
+  recentTracks: [],
   playlistQueue: null,
+  isAutoAdvancing: false,
 
   playTrack: (track, playlistTrackIds) => {
     // Determine which list we navigate through
     const queue = playlistTrackIds ?? null;
     const sourceList = queue ?? tracks.map(t => t.id);
     const trackIndex = sourceList.indexOf(track.id);
+
+    // Update recents: deduplicate, unshift new, cap at 6
+    const updatedRecents = [
+      track,
+      ...get().recentTracks.filter(t => t.id !== track.id),
+    ].slice(0, 6);
 
     set({
       currentTrack: track,
@@ -133,6 +169,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       duration: 0,
       progress: 0,
       playlistQueue: queue,
+      recentTracks: updatedRecents,
     });
 
     playAudioForTrack(track, set);
@@ -179,12 +216,18 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
+    const updatedRecents = [
+      next,
+      ...state.recentTracks.filter(t => t.id !== next.id),
+    ].slice(0, 6);
+
     set({
       currentTrack: next,
       currentTrackIndex: nextIndex,
       currentTime: 0,
       duration: 0,
       progress: 0,
+      recentTracks: updatedRecents,
     });
 
     playAudioForTrack(next, set);
@@ -206,15 +249,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return;
     }
 
+    const updatedRecents = [
+      prev,
+      ...state.recentTracks.filter(t => t.id !== prev.id),
+    ].slice(0, 6);
+
     set({
       currentTrack: prev,
       currentTrackIndex: previousIndex,
       currentTime: 0,
       duration: 0,
       progress: 0,
+      recentTracks: updatedRecents,
     });
 
     playAudioForTrack(prev, set);
     firePlayCount(prev.id);
+  },
+
+  autoAdvanceToNext: () => {
+    // Signal to the 3D deck that an auto-advance is starting
+    set({ isAutoAdvancing: true });
+    // The 3D TurntableDeck will watch this flag, trigger eject animation,
+    // then call nextTrack() after the animation completes.
+  },
+
+  reset: () => {
+    resetAudioEngine();
+    set({
+      currentTrack: null,
+      currentTrackIndex: -1,
+      isPlaying: false,
+      currentTime: 0,
+      duration: 0,
+      progress: 0,
+      recentTracks: [],
+      playlistQueue: null,
+      isAutoAdvancing: false,
+    });
   },
 }));

@@ -17,7 +17,7 @@ import { animate, type JSAnimation } from 'animejs';
 
 import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
-import { webBlurLayerStyle, webGlassStyle } from '../../theme/glassStyles';
+import { webGlassStyle } from '../../theme/glassStyles';
 
 type PlayerScreenProps = {
   onBackHome: () => void;
@@ -83,7 +83,7 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
   }, [isPlaying]);
 
   return (
-    <View style={[styles.screen, webBlurLayerStyle]}>
+    <View style={styles.screen}>
       <View style={[styles.playerCard, webGlassStyle]}>
         {/* Header */}
         <View style={styles.header}>

@@ -119,7 +119,7 @@ export function AppNavigator() {
     return unsubscribe;
   }, []);
 
-  if (isLoading) {
+  if (isLoading && !user) {
     return (
       <View
         style={[
