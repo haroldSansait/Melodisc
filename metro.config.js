@@ -1,11 +1,8 @@
-const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { getDefaultConfig } = require('expo/metro-config');
 
-/**
- * Metro configuration
- * https://reactnative.dev/docs/metro
- *
- * @type {import('@react-native/metro-config').MetroConfig}
- */
-const config = {};
+const config = getDefaultConfig(__dirname);
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+// Extend asset resolver to bundle 3D model formats alongside standard media
+config.resolver.assetExts.push('glb', 'gltf', 'png', 'jpg', 'jpeg', 'svg');
+
+module.exports = config;

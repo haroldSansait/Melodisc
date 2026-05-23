@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import {
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react-native';
 import { animate, type JSAnimation } from 'animejs';
 
+import { artworkAssets } from '../../constants/assetRegistry';
 import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
 import { webGlassStyle } from '../../theme/glassStyles';
@@ -29,6 +31,17 @@ function formatTime(seconds: number): string {
   const secs = totalSeconds % 60;
 
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+/** Resolve the image source for the current track, platform-conditionally. */
+function resolveArtworkSource(trackId: string, webUri: string) {
+  if (Platform.OS !== 'web') {
+    const nativeAsset = artworkAssets[trackId];
+    if (nativeAsset) {
+      return nativeAsset as number;
+    }
+  }
+  return { uri: webUri };
 }
 
 export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
@@ -82,6 +95,10 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
     };
   }, [isPlaying]);
 
+  const artworkSource = currentTrack
+    ? resolveArtworkSource(currentTrack.id, currentTrack.artwork)
+    : null;
+
   return (
     <View style={styles.screen}>
       <View style={[styles.playerCard, webGlassStyle]}>
@@ -104,9 +121,9 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
             ref={discRef}
             style={[styles.glowRing, { shadowColor: primaryAccent }]}
           >
-            {currentTrack?.artwork ? (
+            {artworkSource ? (
               <Image
-                source={{ uri: currentTrack.artwork }}
+                source={artworkSource}
                 style={styles.artworkImage}
               />
             ) : (

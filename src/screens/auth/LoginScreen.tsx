@@ -9,15 +9,20 @@ import {
   View,
 } from 'react-native';
 
-import { MelodiscLogo } from '../../components/MelodiscLogo';
 import { googleLogin, loginEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
 import { webShadowStyle } from '../../theme/glassStyles';
 
+// @ts-ignore Vite resolves PNG imports to URLs for web; Metro resolves them for native.
+import melodiscLogo from '../../assets/melodisc_logo.png';
+
 type LoginScreenProps = {
   onShowSignup: () => void;
 };
+
+const logoSource =
+  typeof melodiscLogo === 'string' ? { uri: melodiscLogo } : melodiscLogo;
 
 export function LoginScreen({ onShowSignup }: LoginScreenProps) {
   const primaryAccent = useThemeStore(state => state.primaryAccent);
@@ -73,8 +78,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <MelodiscLogo size={72} accentColor={primaryAccent} />
-        <Text style={styles.logo}>Melodisc</Text>
+        <Image source={logoSource} style={styles.logoImage} />
         <Text style={styles.subtitle}>Your music, your mood, one tap away.</Text>
       </View>
 
@@ -158,12 +162,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  logo: {
-    color: '#FFFFFF',
-    fontSize: 34,
-    fontWeight: '800',
-    letterSpacing: 0,
-    textAlign: 'center',
+  logoImage: {
+    height: 140,
+    resizeMode: 'contain',
+    width: 140,
+    marginBottom: -16,
+    marginTop: 20,
   },
   subtitle: {
     color: '#FFFFFF',

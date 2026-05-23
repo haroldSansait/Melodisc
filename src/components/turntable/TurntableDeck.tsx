@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Environment } from '@react-three/drei';
@@ -26,6 +27,19 @@ type TurntableDeckProps = {
 };
 
 const TARGET_SPEED = 2.0; // rad/sec (~20 RPM)
+const ROOM_FLOOR_Y = -2.55;
+const TABLE_LEG_HEIGHT = 2.6;
+const TABLE_SURFACE_LOCAL_Y = 1.35;
+const TURNTABLE_CHASSIS_HALF_HEIGHT = 0.25;
+const TURNTABLE_SCALE_MODIFIER = 0.85;
+
+function getTableBaseY(scale: number) {
+  return ROOM_FLOOR_Y + (TABLE_LEG_HEIGHT / 2) * scale;
+}
+
+function getTurntableBaseY(scale: number) {
+  return getTableBaseY(scale) + (TABLE_SURFACE_LOCAL_Y * scale) + (TURNTABLE_CHASSIS_HALF_HEIGHT * scale * TURNTABLE_SCALE_MODIFIER);
+}
 
 // ═══════════════════════════════════════════════════════════════
 // 3D SUB-COMPONENTS
@@ -210,7 +224,7 @@ function DustLid() {
   );
 }
 
-function FlyingVinylMesh({ track, onLanded }: { track: Track; onLanded: () => void }) {
+function FlyingVinylMesh({ track, onLanded, scale = 1 }: { track: Track; onLanded: () => void; scale?: number }) {
   const meshRef = useRef<Mesh>(null);
   const progress = useRef(0);
   const hasLanded = useRef(false);
@@ -226,12 +240,12 @@ function FlyingVinylMesh({ track, onLanded }: { track: Track; onLanded: () => vo
     const easeOut = 1 - Math.pow(1 - progress.current, 3);
 
     // Fly from above-and-forward down to the platter surface height
-    meshRef.current.position.x = MathUtils.lerp(3, 0, easeOut);
-    meshRef.current.position.y = MathUtils.lerp(6, 0.70, easeOut);
-    meshRef.current.position.z = MathUtils.lerp(5, 0, easeOut);
+    meshRef.current.position.x = MathUtils.lerp(3 * scale, 0, easeOut);
+    meshRef.current.position.y = MathUtils.lerp(6, getTurntableBaseY(scale) + 0.35 * scale * TURNTABLE_SCALE_MODIFIER, easeOut);
+    meshRef.current.position.z = MathUtils.lerp(5 * scale, 0, easeOut);
 
     // Scale up smoothly
-    const s = MathUtils.lerp(0.4, 1, easeOut);
+    const s = MathUtils.lerp(0.4 * scale, scale * TURNTABLE_SCALE_MODIFIER, easeOut);
     meshRef.current.scale.set(s, s, s);
 
     // Opacity fade in (first 40% of progress)
@@ -266,14 +280,14 @@ function FlyingVinylMesh({ track, onLanded }: { track: Track; onLanded: () => vo
 // BEDROOM ENVIRONMENT
 // ═══════════════════════════════════════════════════════════════
 
-function DJTable() {
+function DJTable({ scale = 1 }: { scale?: number }) {
   const legRadius = 0.08;
-  const legHeight = 2.5;
+  const legHeight = 2.6;
   const tableW = 5;
   const tableD = 3;
 
   return (
-    <group position={[0, -1.25, 0]}>
+    <group position={[0, getTableBaseY(scale), 0]} scale={[scale, scale, scale]}>
       {/* Tabletop */}
       <mesh position={[0, legHeight / 2 + 0.05, 0]} receiveShadow castShadow>
         <boxGeometry args={[tableW, 0.1, tableD]} />
@@ -388,7 +402,7 @@ function CozyCouch({ scale = 1 }: { scale?: number }) {
 
 function VinylCabinet({ position, rotation }: { position: [number, number, number]; rotation?: [number, number, number] }) {
   const spineColors = ['#e3d5c8', '#111111', '#c05621', '#4a5568', '#f6e0b5', '#2d3748'];
-  
+
   const recordSleeves = useMemo(() => {
     const sleeves = [];
     // Cubby 1: Top Left
@@ -416,7 +430,7 @@ function VinylCabinet({ position, rotation }: { position: [number, number, numbe
     for (let i = 0; i < 8; i++) {
       discs.push({
         pos: [0.65 - i * 0.06, 1.35, 0.2 + (Math.random() - 0.5) * 0.05],
-        rot: [Math.PI / 2, 0, Math.PI / 2 + (Math.random() - 0.5) * 0.1], 
+        rot: [Math.PI / 2, 0, Math.PI / 2 + (Math.random() - 0.5) * 0.1],
       });
     }
     return discs;
@@ -427,38 +441,38 @@ function VinylCabinet({ position, rotation }: { position: [number, number, numbe
   const H = 1.8;
   const D = 1.2;
   const H_half = H / 2;
-  
+
   return (
     <group position={position} rotation={rotation || [0, 0, 0]}>
       {/* Outer Frame */}
-      <mesh position={[0, H - T/2, 0]} castShadow receiveShadow>
+      <mesh position={[0, H - T / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W, T, D]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[0, T/2, 0]} castShadow receiveShadow>
+      <mesh position={[0, T / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[W, T, D]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[-W/2 + T/2, H_half, 0]} castShadow receiveShadow>
-        <boxGeometry args={[T, H - 2*T, D]} />
+      <mesh position={[-W / 2 + T / 2, H_half, 0]} castShadow receiveShadow>
+        <boxGeometry args={[T, H - 2 * T, D]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[W/2 - T/2, H_half, 0]} castShadow receiveShadow>
-        <boxGeometry args={[T, H - 2*T, D]} />
+      <mesh position={[W / 2 - T / 2, H_half, 0]} castShadow receiveShadow>
+        <boxGeometry args={[T, H - 2 * T, D]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[0, H_half, -D/2 + T/2]} castShadow receiveShadow>
-        <boxGeometry args={[W - 2*T, H - 2*T, T]} />
+      <mesh position={[0, H_half, -D / 2 + T / 2]} castShadow receiveShadow>
+        <boxGeometry args={[W - 2 * T, H - 2 * T, T]} />
         <meshStandardMaterial color="#3a2518" roughness={0.7} metalness={0.1} />
       </mesh>
 
       {/* Grid Dividers */}
       <mesh position={[0, H_half, 0]} castShadow receiveShadow>
-        <boxGeometry args={[W - 2*T, T, D - T]} />
+        <boxGeometry args={[W - 2 * T, T, D - T]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
       <mesh position={[0, H_half, 0]} castShadow receiveShadow>
-        <boxGeometry args={[T, H - 2*T, D - T]} />
+        <boxGeometry args={[T, H - 2 * T, D - T]} />
         <meshStandardMaterial color="#4a2e1b" roughness={0.6} metalness={0.1} />
       </mesh>
 
@@ -602,10 +616,9 @@ function RainyWindow() {
       <mesh position={[0, 0, 0]}>
         <planeGeometry args={[8, 5]} />
         <meshPhysicalMaterial
-          transmission={0.9}
+          transparent
+          opacity={0.45}
           roughness={0.045}
-          thickness={0.2}
-          ior={1.5}
           color="#c8e0e8"
           metalness={0.02}
           clearcoat={1}
@@ -646,7 +659,7 @@ function RainyWindow() {
 
 function BeachWindow() {
   const beachTexture = useLoader(TextureLoader, beachSunsetUrl) as Texture;
-  
+
   return (
     <group position={[0, 2.5, -6]}>
       {/* The Beach Background */}
@@ -658,11 +671,10 @@ function BeachWindow() {
       {/* The Glass Pane (massive unobstructed picture window) */}
       <mesh position={[0, 0, 0]}>
         <planeGeometry args={[8, 5]} />
-        <meshPhysicalMaterial 
-          transmission={0.9} 
-          roughness={0.045} 
-          thickness={0.2} 
-          ior={1.5}
+        <meshPhysicalMaterial
+          transparent
+          opacity={0.45}
+          roughness={0.045}
           color="#ffdab9"
           metalness={0.02}
           clearcoat={1}
@@ -725,9 +737,9 @@ function FurnitureDetails() {
   );
 }
 
-function DeskLamp() {
+function DeskLamp({ scale = 1, positionX = 2, positionZ = -1 }: { scale?: number, positionX?: number, positionZ?: number }) {
   return (
-    <group position={[2, 0.1, -1]}>
+    <group position={[positionX * scale, getTableBaseY(scale) + (TABLE_SURFACE_LOCAL_Y + 0.025) * scale, positionZ * scale]} scale={[scale, scale, scale]}>
       {/* Base */}
       <mesh castShadow>
         <cylinderGeometry args={[0.3, 0.3, 0.05, 16]} />
@@ -754,7 +766,31 @@ function DeskLamp() {
   );
 }
 
-function DefaultRoom() {
+function LargeFloorLamp({ scale = 1 }: { scale?: number }) {
+  return (
+    <group position={[6.2 * scale, ROOM_FLOOR_Y + 0.025 * scale, 1.8 * scale]} scale={[scale, scale, scale]}>
+      <mesh castShadow receiveShadow>
+        <cylinderGeometry args={[0.45, 0.55, 0.05, 24]} />
+        <meshStandardMaterial color="#111" roughness={0.72} metalness={0.25} />
+      </mesh>
+      <mesh position={[0, 1.35, 0]} castShadow>
+        <cylinderGeometry args={[0.045, 0.06, 2.7, 12]} />
+        <meshStandardMaterial color="#222" metalness={0.8} roughness={0.35} />
+      </mesh>
+      <mesh position={[0, 2.75, 0.04]} rotation={[0.18, 0, 0]} castShadow>
+        <coneGeometry args={[0.42, 0.7, 24, 1, true]} />
+        <meshStandardMaterial color="#111" roughness={0.8} side={2} />
+      </mesh>
+      <mesh position={[0, 2.55, 0.16]}>
+        <sphereGeometry args={[0.13, 20, 20]} />
+        <meshStandardMaterial emissive="#ffb13b" emissiveIntensity={10.5} color="#fff1cf" />
+      </mesh>
+      <pointLight position={[0, 2.5, 0.2]} intensity={6.2} color="#ffb13b" distance={14} decay={1.3} castShadow shadow-bias={-0.002} />
+    </group>
+  );
+}
+
+function DefaultRoom({ scale = 1 }: { scale?: number }) {
   return (
     <>
       <ambientLight intensity={0.1} color="#1a2536" />
@@ -774,13 +810,15 @@ function DefaultRoom() {
         shadow-bias={-0.001}
       />
 
-      <DeskLamp />
+      <DeskLamp scale={scale} positionX={2} positionZ={-1} />
+      <DeskLamp scale={scale} positionX={-2} positionZ={-1} />
+      <LargeFloorLamp scale={scale} />
 
       {/* ── Environment ── */}
       <BedroomWalls />
       <RainyWindow />
       <FurnitureDetails />
-      <DJTable />
+      <DJTable scale={scale} />
       <CozyCouch />
       <WallPosters />
       <VinylCabinet position={[-8, -2.55, 1.5]} rotation={[0, Math.PI / 2, 0]} />
@@ -788,7 +826,7 @@ function DefaultRoom() {
   );
 }
 
-function WarmVibeRoom() {
+function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
   return (
     <>
       <ambientLight intensity={0.1} color="#36251a" />
@@ -810,18 +848,18 @@ function WarmVibeRoom() {
       {/* Walls & Flooring */}
       <group>
         {/* Back Wall - left pane */}
-        <mesh position={[-6.5, 2, -6]} receiveShadow>
-          <boxGeometry args={[5, 10, 0.15]} />
+        <mesh position={[-6.5, 5, -6]} receiveShadow>
+          <boxGeometry args={[5, 16, 0.15]} />
           <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
         </mesh>
         {/* Back Wall - right pane */}
-        <mesh position={[6.5, 2, -6]} receiveShadow>
-          <boxGeometry args={[5, 10, 0.15]} />
+        <mesh position={[6.5, 5, -6]} receiveShadow>
+          <boxGeometry args={[5, 16, 0.15]} />
           <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
         </mesh>
         {/* Back Wall - top pane */}
-        <mesh position={[0, 7.5, -6]} receiveShadow>
-          <boxGeometry args={[8, 5, 0.15]} />
+        <mesh position={[0, 9, -6]} receiveShadow>
+          <boxGeometry args={[8, 8, 0.15]} />
           <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
         </mesh>
         {/* Back Wall - bottom pane */}
@@ -831,13 +869,13 @@ function WarmVibeRoom() {
         </mesh>
 
         {/* Left wall */}
-        <mesh position={[-9, 2, 4]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-          <boxGeometry args={[20, 10, 0.15]} />
+        <mesh position={[-9, 5, 4]} rotation={[0, Math.PI / 2, 0]} receiveShadow>
+          <boxGeometry args={[20, 16, 0.15]} />
           <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
         </mesh>
         {/* Right wall */}
-        <mesh position={[9, 2, 4]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
-          <boxGeometry args={[20, 10, 0.15]} />
+        <mesh position={[9, 5, 4]} rotation={[0, -Math.PI / 2, 0]} receiveShadow>
+          <boxGeometry args={[20, 16, 0.15]} />
           <meshStandardMaterial color="#f5f5dc" roughness={0.9} />
         </mesh>
         {/* Floor: oak wood plank texture */}
@@ -850,8 +888,8 @@ function WarmVibeRoom() {
       <BeachWindow />
       {/* Minimalist Modern Layout */}
       {/* Media Console */}
-      <group position={[0, -1.25, 0]}>
-        <mesh position={[0, 1.15, 0]} receiveShadow castShadow>
+      <group position={[0, getTableBaseY(scale), 0]} scale={[scale, scale, scale]}>
+        <mesh position={[0, 1.2, 0]} receiveShadow castShadow>
           <boxGeometry args={[6, 0.4, 2.5]} />
           <meshStandardMaterial color="#e6e6e6" roughness={0.2} metalness={0.1} />
         </mesh>
@@ -870,7 +908,7 @@ function WarmVibeRoom() {
       </group>
 
       {/* Studio Monitors */}
-      <group position={[0, -0.75, 0]}>
+      <group position={[0, -2.55 + 1.8 * scale, 0]} scale={[scale, scale, scale]}>
         {[-3.8, 3.8].map((x, i) => (
           <group key={i} position={[x, 0.1, -0.5]} rotation={[0, x < 0 ? 0.3 : -0.3, 0]}>
             <mesh castShadow receiveShadow>
@@ -944,14 +982,16 @@ function WarmVibeRoom() {
 // MAIN SCENE COMPOSER
 // ═══════════════════════════════════════════════════════════════
 
-function TurntableScene({ dockedTrack, flyingTrack, isPlaying, isEjecting, onLanded }: {
+function TurntableScene({ dockedTrack, flyingTrack, isPlaying, isEjecting, onLanded, isMobile }: {
   dockedTrack: Track | null;
   flyingTrack: Track | null;
   isPlaying: boolean;
   isEjecting: boolean;
   onLanded: () => void;
+  isMobile: boolean;
 }) {
   const environmentTheme = useThemeStore(state => state.environmentTheme);
+  const scale = isMobile ? 0.7 : 1.0;
 
   return (
     <>
@@ -962,10 +1002,10 @@ function TurntableScene({ dockedTrack, flyingTrack, isPlaying, isEjecting, onLan
         <Environment preset="night" environmentIntensity={0.2} />
       )}
 
-      {environmentTheme === 'warm_vibe' ? <WarmVibeRoom /> : <DefaultRoom />}
+      {environmentTheme === 'warm_vibe' ? <WarmVibeRoom scale={scale} /> : <DefaultRoom scale={scale} />}
 
       {/* ── Turntable Unit (sits on the table) ── */}
-      <group position={[0, 0.35, 0]}>
+      <group position={[0, getTurntableBaseY(scale), 0]} scale={[scale * TURNTABLE_SCALE_MODIFIER, scale * TURNTABLE_SCALE_MODIFIER, scale * TURNTABLE_SCALE_MODIFIER]}>
         {/* Volumetric Chassis Body */}
         <mesh position={[0, 0, 0]} receiveShadow castShadow>
           <boxGeometry args={[3.8, 0.5, 2.8]} />
@@ -999,18 +1039,18 @@ function TurntableScene({ dockedTrack, flyingTrack, isPlaying, isEjecting, onLan
       </group>
 
       {/* ── Flying Vinyl (arrives from above the scene) ── */}
-      {flyingTrack && <FlyingVinylMesh track={flyingTrack} onLanded={onLanded} />}
+      {flyingTrack && <FlyingVinylMesh track={flyingTrack} onLanded={onLanded} scale={scale} />}
 
       {/* ── Camera Controls ── */}
       <OrbitControls
         enableZoom={true}
-        minDistance={5.5}
-        maxDistance={9}
+        minDistance={isMobile ? 3.5 : 4.5}
+        maxDistance={isMobile ? 10.5 : 8.5}
         enableRotate={true}
         minPolarAngle={Math.PI / 2.85}
         maxPolarAngle={Math.PI / 2.15}
-        minAzimuthAngle={-Math.PI / 8}
-        maxAzimuthAngle={Math.PI / 8}
+        minAzimuthAngle={isMobile ? -Math.PI / 4.5 : -Math.PI / 6}
+        maxAzimuthAngle={isMobile ? Math.PI / 4.5 : Math.PI / 6}
         enablePan={true}
         panSpeed={0.65}
         enableDamping
@@ -1030,6 +1070,9 @@ export function TurntableDeck({
   onVinylTap,
 }: TurntableDeckProps) {
   const isPlaying = usePlayerStore(state => state.isPlaying);
+  const currentTrack = usePlayerStore(state => state.currentTrack);
+  const { width } = useWindowDimensions();
+  const isMobile = width < 768;
 
   const [dockedTrack, setDockedTrack] = useState<Track | null>(null);
   const [flyingTrack, setFlyingTrack] = useState<Track | null>(null);
@@ -1097,10 +1140,10 @@ export function TurntableDeck({
       return;
     }
 
-    if (dockedTrack && dockedTrack.id !== dockingTrack.id) {
+    if (dockedTrack) {
+      // Eject the current disc first, then fly in the new one
       pendingDockRef.current = dockingTrack;
       setIsEjecting(true);
-      // Wait for the eject animation to complete (matches ejectProgress duration)
       setTimeout(() => {
         setIsEjecting(false);
         setDockedTrack(null);
@@ -1108,14 +1151,59 @@ export function TurntableDeck({
           setFlyingTrack(pendingDockRef.current);
           pendingDockRef.current = null;
         }
-      }, 500); // Sync with ejectProgress (delta * 2.5 → ~400-500ms)
+      }, 500);
+      return;
+    }
+
+    // No disc on the platter — fly in directly
+    setFlyingTrack(dockingTrack);
+  }, [dockingTrack, dockedTrack, flyingTrack]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    // When the user tapped a track from the UI (dockingTrack is set),
+    // the dockingTrack effect owns the state machine. Don't interfere.
+    if (dockingTrack) return;
+
+    if (!currentTrack) {
+      // Don't nuke state if a docking operation is already in-flight
+      if (!flyingTrack && !pendingDockRef.current && !dockingTrack) {
+        setDockedTrack(null);
+        setFlyingTrack(null);
+        pendingDockRef.current = null;
+        setIsEjecting(false);
+      }
+      return;
+    }
+
+    if (
+      currentTrack.id === dockedTrack?.id ||
+      currentTrack.id === flyingTrack?.id ||
+      currentTrack.id === pendingDockRef.current?.id
+    ) {
       return;
     }
 
     if (!dockedTrack) {
-      setFlyingTrack(dockingTrack);
+      setFlyingTrack(currentTrack);
+      return;
     }
-  }, [dockingTrack]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    pendingDockRef.current = currentTrack;
+    setIsEjecting(true);
+
+    const swapTimer = setTimeout(() => {
+      setIsEjecting(false);
+      setDockedTrack(null);
+      if (pendingDockRef.current) {
+        setFlyingTrack(pendingDockRef.current);
+        pendingDockRef.current = null;
+      }
+    }, 500);
+
+    return () => {
+      clearTimeout(swapTimer);
+    };
+  }, [currentTrack, dockedTrack, flyingTrack]);
 
   // Auto-advance handler: when audio finishes, the store sets isAutoAdvancing=true.
   // We intercept it here to run the eject→fly-in animation before calling nextTrack().
@@ -1153,7 +1241,7 @@ export function TurntableDeck({
         <Canvas
           gl={{ alpha: true }}
           shadows
-          camera={{ position: [0, 5, 9], fov: 45 }}
+          camera={{ position: isMobile ? [0, 6, 11] : [0, 5, 9], fov: isMobile ? 50 : 45 }}
           dpr={[1, 2]}
           onCreated={() => setCanvasCreated(true)}
           style={styles.canvas}
@@ -1165,6 +1253,7 @@ export function TurntableDeck({
               isPlaying={isPlaying && !flyingTrack && !isEjecting}
               isEjecting={isEjecting}
               onLanded={handleLanded}
+              isMobile={isMobile}
             />
           </Suspense>
         </Canvas>
@@ -1172,7 +1261,14 @@ export function TurntableDeck({
 
       {/* Invisible touch target to open PlayerScreen when vinyl is tapped */}
       {dockedTrack && !flyingTrack && !isEjecting && (
-        <TouchableOpacity activeOpacity={1} style={styles.touchOverlay} onPress={onVinylTap} />
+        <TouchableOpacity
+          activeOpacity={1}
+          style={[
+            styles.touchOverlay,
+            isMobile && { width: 130, height: 75, borderRadius: 65 }
+          ]}
+          onPress={onVinylTap}
+        />
       )}
     </View>
   );

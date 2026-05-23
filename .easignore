@@ -1,0 +1,32 @@
+# Version control
+.git
+
+# Dependencies (EAS installs these during build)
+node_modules
+
+# Web build artifacts
+dist
+web-build
+
+# IDE and editor files
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Scrcpy / tools
+*.apk
+
+# Gemini / AI artifacts
+.gemini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Test coverage
+coverage

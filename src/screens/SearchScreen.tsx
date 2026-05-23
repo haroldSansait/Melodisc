@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,7 @@ import {
 } from 'react-native';
 import { Search as SearchIcon } from 'lucide-react-native';
 
+import { artworkAssets } from '../constants/assetRegistry';
 import { tracks, type Track } from '../constants/tracks';
 import { usePlayerStore } from '../store/playerStore';
 import { useThemeStore } from '../store/themeStore';
@@ -192,7 +194,11 @@ export function SearchScreen({
                   ]}
                 >
                   <Image
-                    source={{ uri: track.artwork }}
+                    source={
+                      Platform.OS !== 'web' && artworkAssets[track.id]
+                        ? artworkAssets[track.id]
+                        : { uri: track.artwork }
+                    }
                     style={[
                       styles.resultThumb,
                       isActive && {

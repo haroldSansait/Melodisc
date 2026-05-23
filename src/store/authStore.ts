@@ -126,6 +126,16 @@ export const useAuthStore = create<AuthState>(set => ({
     }
 
     set({ user });
+
+// Listen for external changes to auth token in localStorage
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', event => {
+    if (event.key === AUTH_CONTEXT_STORAGE_KEY && event.newValue === null) {
+      // Token was cleared, update auth store state
+      useAuthStore.getState().setUser(null);
+    }
+  });
+}
   },
   setLoading: isLoading => set({ isLoading }),
   setAuthError: authError => set({ authError }),

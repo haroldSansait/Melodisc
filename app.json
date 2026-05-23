@@ -1,4 +1,37 @@
 {
-  "name": "Melodisc",
-  "displayName": "Melodisc"
+  "expo": {
+    "name": "Melodisc",
+    "slug": "melodisc",
+    "scheme": "melodisc",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./src/assets/melodisc_logo.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./src/assets/melodisc_logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#121214"
+    },
+    "android": {
+      "package": "com.vibemotion.melodisc",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/melodisc_logo.png",
+        "backgroundColor": "#121214"
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ]
+    },
+    "plugins": [
+      "expo-av"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "b191ab36-12be-41be-84de-90af48d18036"
+      }
+    },
+    "owner": "haroldksansait"
+  }
 }

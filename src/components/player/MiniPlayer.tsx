@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Image,
+  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -9,6 +10,7 @@ import {
 } from 'react-native';
 import { Pause, Play } from 'lucide-react-native';
 
+import { artworkAssets } from '../../constants/assetRegistry';
 import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
 import { webGlassStyle } from '../../theme/glassStyles';
@@ -39,10 +41,14 @@ export function MiniPlayer({ onOpenPlayer }: MiniPlayerProps) {
       onPress={onOpenPlayer}
       style={[styles.container, webGlassStyle]}
     >
-      {/* Album artwork thumbnail */}
+      {/* Album artwork thumbnail — native uses static require(), web uses URI */}
       {currentTrack.artwork ? (
         <Image
-          source={{ uri: currentTrack.artwork }}
+          source={
+            Platform.OS !== 'web' && artworkAssets[currentTrack.id]
+              ? artworkAssets[currentTrack.id]
+              : { uri: currentTrack.artwork }
+          }
           style={styles.thumbnail}
         />
       ) : (

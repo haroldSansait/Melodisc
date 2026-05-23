@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
+import { fileURLToPath, URL } from 'node:url';
 
 export default defineConfig({
   define: {
@@ -20,6 +21,7 @@ export default defineConfig({
       '.json',
     ],
     alias: {
+      'expo-av': fileURLToPath(new URL('./src/shims/expo-av.web.ts', import.meta.url)),
       // Swap lucide-react-native for the web-native version BEFORE
       // the general react-native alias runs, so react-native-svg
       // is never loaded during the web build.

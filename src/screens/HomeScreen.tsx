@@ -3,6 +3,7 @@ import {
   Animated,
   Easing,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -15,6 +16,7 @@ import {
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react-native';
 
 import { TurntableDeck } from '../components/turntable/TurntableDeck';
+import { artworkAssets } from '../constants/assetRegistry';
 import { tracks, type Track } from '../constants/tracks';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
@@ -144,7 +146,7 @@ export function HomeScreen({
   const handleTrackPress = useCallback(
     (track: Track, event: GestureResponderEvent) => {
       closeDrawers(); // Automatically close drawers to reveal Turntable
-      setDockingTrack(track);
+      setDockingTrack({ ...track });
     },
     [closeDrawers],
   );
@@ -152,6 +154,7 @@ export function HomeScreen({
   const handleDockComplete = useCallback(
     (track: Track) => {
       playTrack(track);
+      setDockingTrack(null);
     },
     [playTrack],
   );
@@ -210,7 +213,11 @@ export function HomeScreen({
         ]}
       >
         <Image
-          source={{ uri: track.artwork }}
+          source={
+            Platform.OS !== 'web' && artworkAssets[track.id]
+              ? artworkAssets[track.id]
+              : { uri: track.artwork }
+          }
           style={[
             styles.trackThumb,
             isActive && { borderColor: primaryAccent, borderWidth: 2 },
@@ -299,7 +306,11 @@ export function HomeScreen({
                     isActive && { borderColor: primaryAccent, boxShadow: activeGlow(primaryAccent) },
                   ]}
                 >
-                  <Image source={{ uri: track.artwork }} style={styles.jumpArtwork} />
+                  <Image source={
+                    Platform.OS !== 'web' && artworkAssets[track.id]
+                      ? artworkAssets[track.id]
+                      : { uri: track.artwork }
+                  } style={styles.jumpArtwork} />
                   <View style={styles.jumpInfo}>
                     <Text numberOfLines={1} style={styles.jumpTitle}>{track.title}</Text>
                     <Text numberOfLines={1} style={[styles.jumpGenre, { color: primaryAccent }]}>{track.genre}</Text>
