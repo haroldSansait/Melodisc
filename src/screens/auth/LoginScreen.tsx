@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Eye, EyeOff, Lock } from 'lucide-react-native';
 
 import { googleLogin, loginEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
@@ -16,6 +17,8 @@ import { webShadowStyle } from '../../theme/glassStyles';
 
 // @ts-ignore Vite resolves PNG imports to URLs for web; Metro resolves them for native.
 import melodiscLogo from '../../assets/melodisc_logo.png';
+// @ts-ignore
+import googleLogo from '../../assets/google_logo.png';
 
 type LoginScreenProps = {
   onShowSignup: () => void;
@@ -23,6 +26,16 @@ type LoginScreenProps = {
 
 const logoSource =
   typeof melodiscLogo === 'string' ? { uri: melodiscLogo } : melodiscLogo;
+
+const googleLogoSource =
+  typeof googleLogo === 'string' ? { uri: googleLogo } : googleLogo;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Rate limiting constants
+// ─────────────────────────────────────────────────────────────────────────────
+
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 30_000;
 
 export function LoginScreen({ onShowSignup }: LoginScreenProps) {
   const primaryAccent = useThemeStore(state => state.primaryAccent);
@@ -32,8 +45,16 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ── Rate limiting state ──
+  const [failedAttempts, setFailedAttempts] = useState(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
+
   const cardEntrance = useRef(new Animated.Value(0)).current;
 
+  // ── Card entrance animation ──
   useEffect(() => {
     const animation = Animated.timing(cardEntrance, {
       toValue: 1,
@@ -48,15 +69,72 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
     };
   }, [cardEntrance]);
 
-  const handleLogin = async () => {
-    await loginEmail(email.trim(), password);
-  };
+  // ── Lockout countdown timer ──
+  useEffect(() => {
+    if (lockoutUntil === null) {
+      setLockoutRemaining(0);
+      return;
+    }
+
+    const computeRemaining = () =>
+      Math.max(0, Math.ceil((lockoutUntil - Date.now()) / 1000));
+
+    setLockoutRemaining(computeRemaining());
+
+    const interval = setInterval(() => {
+      const remaining = computeRemaining();
+      setLockoutRemaining(remaining);
+
+      if (remaining <= 0) {
+        clearInterval(interval);
+        setLockoutUntil(null);
+        setFailedAttempts(0);
+        setAuthError(null);
+      }
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [lockoutUntil, setAuthError]);
+
+  const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
+
+  const handleLogin = useCallback(async () => {
+    if (isLockedOut) {
+      return;
+    }
+
+    const result = await loginEmail(email.trim(), password);
+
+    if (result.status === 'success') {
+      setFailedAttempts(0);
+      setLockoutUntil(null);
+    } else {
+      setPassword('');
+      setFailedAttempts(prev => {
+        const newCount = prev + 1;
+        if (newCount >= MAX_FAILED_ATTEMPTS) {
+          const lockoutTime = Date.now() + LOCKOUT_DURATION_MS;
+          setLockoutUntil(lockoutTime);
+          setAuthError(null);
+        }
+        return newCount;
+      });
+    }
+  }, [email, password, failedAttempts, isLockedOut, setAuthError]);
 
   const handleGoogleLogin = async () => {
     await googleLogin();
   };
 
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
+
   const accentTextStyle = { color: primaryAccent };
+  const isDisabled = isLoading || isLockedOut;
+
   const cardAnimatedStyle = {
     opacity: cardEntrance,
     transform: [
@@ -85,6 +163,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
       <Animated.View style={[styles.card, webShadowStyle, cardAnimatedStyle]}>
         <TextInput
           autoCapitalize="none"
+          editable={!isLockedOut}
           keyboardType="email-address"
           onChangeText={value => {
             setAuthError(null);
@@ -92,36 +171,68 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
           }}
           placeholder="Email"
           placeholderTextColor="#77777D"
-          style={styles.input}
+          style={[styles.input, isLockedOut && styles.inputDisabled]}
           value={email}
         />
-        <TextInput
-          autoCapitalize="none"
-          onChangeText={value => {
-            setAuthError(null);
-            setPassword(value);
-          }}
-          placeholder="Password"
-          placeholderTextColor="#77777D"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-        />
 
-        {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
+        {/* Password input with visibility toggle */}
+        <View style={[styles.passwordContainer, isLockedOut && styles.inputDisabled]}>
+          <TextInput
+            autoCapitalize="none"
+            editable={!isLockedOut}
+            onChangeText={value => {
+              setAuthError(null);
+              setPassword(value);
+            }}
+            placeholder="Password"
+            placeholderTextColor="#77777D"
+            secureTextEntry={!showPassword}
+            style={styles.passwordInput}
+            value={password}
+          />
+          <TouchableOpacity
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={togglePasswordVisibility}
+            style={styles.eyeButton}
+          >
+            {showPassword ? (
+              <EyeOff color="#77777D" size={20} strokeWidth={2} />
+            ) : (
+              <Eye color="#77777D" size={20} strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Auth error message */}
+        {authError && !isLockedOut ? (
+          <Text style={styles.errorText}>{authError}</Text>
+        ) : null}
+
+        {/* Lockout warning with countdown */}
+        {isLockedOut ? (
+          <View style={styles.lockoutRow}>
+            <Lock color="#FB7185" size={16} strokeWidth={2.5} />
+            <Text style={styles.lockoutText}>
+              Too many failed attempts. Try again in {lockoutRemaining} second
+              {lockoutRemaining !== 1 ? 's' : ''}.
+            </Text>
+          </View>
+        ) : null}
 
         <TouchableOpacity
           activeOpacity={0.82}
-          disabled={isLoading}
+          disabled={isDisabled}
           onPress={handleLogin}
           style={[
             styles.primaryButton,
             { backgroundColor: primaryAccent },
-            isLoading && styles.disabledButton,
+            isDisabled && styles.disabledButton,
           ]}
         >
           <Text style={styles.primaryButtonText}>
-            {isLoading ? 'Signing in...' : 'Log In'}
+            {isLoading ? 'Signing in...' : isLockedOut ? 'Locked' : 'Log In'}
           </Text>
         </TouchableOpacity>
 
@@ -131,7 +242,7 @@ export function LoginScreen({ onShowSignup }: LoginScreenProps) {
           onPress={handleGoogleLogin}
           style={[styles.secondaryButton, { borderColor: primaryAccent }]}
         >
-          <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png' }} style={styles.googleIcon} />
+          <Image source={googleLogoSource} style={styles.googleIcon} />
           <Text style={styles.secondaryButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
@@ -161,7 +272,6 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     alignItems: 'center',
   },
-
   logoImage: {
     height: 140,
     resizeMode: 'contain',
@@ -199,9 +309,49 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: 16,
   },
+  inputDisabled: {
+    opacity: 0.45,
+  },
+  passwordContainer: {
+    alignItems: 'center',
+    backgroundColor: '#18181D',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    minHeight: 52,
+  },
+  passwordInput: {
+    color: '#FFFFFF',
+    flex: 1,
+    fontSize: 15,
+    minHeight: 52,
+    paddingHorizontal: 16,
+  },
+  eyeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
   errorText: {
     color: '#FB7185',
     fontSize: 13,
+    lineHeight: 18,
+  },
+  lockoutRow: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 113, 133, 0.08)',
+    borderRadius: 10,
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  lockoutText: {
+    color: '#FB7185',
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
     lineHeight: 18,
   },
   primaryButton: {

@@ -2,31 +2,54 @@
 .git
 
 # Dependencies (EAS installs these during build)
-node_modules
+node_modules/
+
+# Local Android build caches, plugins, and properties
+android/.gradle/
+android/build/
+android/app/build/
+android/.kotlin/
+android/.cxx/
+android/local.properties
+*.keystore
+!debug.keystore
+
+# Local iOS build caches and CocoaPods dependencies
+ios/build/
+ios/Pods/
+ios/DerivedData/
+ios/**/.xcode.env.local
+*.jsbundle
+*.ipa
 
 # Web build artifacts
-dist
-web-build
+dist/
+web-build/
+
+# Expo / Bundler cache
+.expo/
+.bundle/
+.metro-health-check*
 
 # IDE and editor files
-.idea
-.vscode
+.idea/
+.vscode/
 *.swp
 *.swo
+*.xcuserstate
 
 # OS files
 .DS_Store
 Thumbs.db
 
-# Scrcpy / tools
+# Scrcpy / tools / build outputs
 *.apk
 
 # Gemini / AI artifacts
 .gemini
 
-# Logs
+# Logs and test coverage
 *.log
 npm-debug.log*
-
-# Test coverage
-coverage
+yarn-error.log
+coverage/

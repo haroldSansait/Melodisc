@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import {
+  Animated,
   Image,
+  PanResponder,
   Platform,
   StyleSheet,
   Text,
@@ -14,7 +16,6 @@ import {
   SkipBack,
   SkipForward,
 } from 'lucide-react-native';
-import { animate, type JSAnimation } from 'animejs';
 
 import { artworkAssets } from '../../constants/assetRegistry';
 import { usePlayerStore } from '../../store/playerStore';
@@ -54,53 +55,93 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
   const nextTrack = usePlayerStore(state => state.nextTrack);
   const previousTrack = usePlayerStore(state => state.previousTrack);
   const togglePlay = usePlayerStore(state => state.togglePlay);
-  const discRef = useRef<View>(null);
-  const pulseAnimRef = useRef<JSAnimation | null>(null);
+  const seek = usePlayerStore(state => state.seek);
+  const pulseAnim = useRef(new Animated.Value(1.0)).current;
 
-  // Antigravity Pulse: animejs breathing animation on the disc
-  useEffect(() => {
-    const discElement = discRef.current;
+  const [trackWidth, setTrackWidth] = React.useState(0);
 
-    if (!discElement) {
-      return undefined;
+  const panResponder = React.useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Trigger if swiping down vertically (ignoring minor horizontal jitter)
+        return gestureState.dy > 10 && Math.abs(gestureState.dx) < 30;
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 70) {
+          onBackHome();
+        }
+      },
+    })
+  ).current;
+
+  const handleLayout = (event: any) => {
+    setTrackWidth(event.nativeEvent.layout.width);
+  };
+
+  const handleProgressPress = (event: any) => {
+    if (trackWidth <= 0) return;
+
+    let clickX = event.nativeEvent.locationX;
+
+    // Web Fallback: React Native Web standard clicks don't map locationX directly inside touch events.
+    if (clickX === undefined || isNaN(clickX)) {
+      if (Platform.OS === 'web') {
+        const rect = (event.currentTarget as any)?.getBoundingClientRect();
+        if (rect) {
+          clickX = (event.nativeEvent as any).clientX - rect.left;
+        }
+      }
     }
 
-    if (isPlaying) {
-      pulseAnimRef.current = animate(discElement, {
-        scale: [1.0, 1.05],
-        duration: 1200,
-        ease: 'inOutSine',
-        alternate: true,
-        loop: true,
-      });
-    } else {
-      if (pulseAnimRef.current) {
-        pulseAnimRef.current.pause();
-        pulseAnimRef.current = null;
-      }
+    if (clickX === undefined || isNaN(clickX)) return;
 
-      // Reset scale
-      animate(discElement, {
-        scale: 1.0,
+    const progressPercent = Math.min(1, Math.max(0, clickX / trackWidth));
+    seek(progressPercent);
+  };
+
+  // Antigravity Pulse: hardware-accelerated native Animated breathing animation on the disc
+  useEffect(() => {
+    let animation: Animated.CompositeAnimation | null = null;
+
+    if (isPlaying) {
+      animation = Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.05,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1.0,
+            duration: 1200,
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      animation.start();
+    } else {
+      // Reset scale back to 1.0
+      Animated.timing(pulseAnim, {
+        toValue: 1.0,
         duration: 300,
-        ease: 'outQuad',
-      });
+        useNativeDriver: true,
+      }).start();
     }
 
     return () => {
-      if (pulseAnimRef.current) {
-        pulseAnimRef.current.pause();
-        pulseAnimRef.current = null;
+      if (animation) {
+        animation.stop();
       }
     };
-  }, [isPlaying]);
+  }, [isPlaying, pulseAnim]);
 
   const artworkSource = currentTrack
     ? resolveArtworkSource(currentTrack.id, currentTrack.artwork)
     : null;
 
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} {...panResponder.panHandlers}>
       <View style={[styles.playerCard, webGlassStyle]}>
         {/* Header */}
         <View style={styles.header}>
@@ -115,11 +156,16 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
           <View style={styles.headerSpacer} />
         </View>
 
-        {/* Visual stage – artwork or accent disc with animejs pulse */}
+        {/* Visual stage – artwork or accent disc with pulse */}
         <View style={[styles.visualStage, { borderColor: `${primaryAccent}33` }]}>
-          <View
-            ref={discRef}
-            style={[styles.glowRing, { shadowColor: primaryAccent }]}
+          <Animated.View
+            style={[
+              styles.glowRing,
+              {
+                shadowColor: primaryAccent,
+                transform: [{ scale: pulseAnim }],
+              },
+            ]}
           >
             {artworkSource ? (
               <Image
@@ -131,7 +177,7 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
                 <View style={styles.discHole} />
               </View>
             )}
-          </View>
+          </Animated.View>
         </View>
 
         {currentTrack ? (
@@ -151,8 +197,14 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
 
             {/* Progress bar with time labels */}
             <View style={styles.progressSection}>
-              <View style={styles.progressTrack}>
+              <TouchableOpacity
+                activeOpacity={1}
+                onLayout={handleLayout}
+                onPress={handleProgressPress}
+                style={styles.progressTrack}
+              >
                 <View
+                  pointerEvents="none"
                   style={[
                     styles.progressFill,
                     {
@@ -162,6 +214,7 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
                   ]}
                 />
                 <View
+                  pointerEvents="none"
                   style={[
                     styles.progressThumb,
                     {
@@ -170,7 +223,7 @@ export function PlayerScreen({ onBackHome }: PlayerScreenProps) {
                     },
                   ]}
                 />
-              </View>
+              </TouchableOpacity>
               <View style={styles.timeRow}>
                 <Text style={styles.timeLabel}>{formatTime(currentTime)}</Text>
                 <Text style={styles.timeLabel}>{formatTime(duration)}</Text>
@@ -334,7 +387,7 @@ const styles = StyleSheet.create({
   progressTrack: {
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 999,
-    height: 4,
+    height: 6,
     overflow: 'visible',
     position: 'relative',
     width: '100%',
@@ -347,7 +400,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     height: 12,
     marginLeft: -6,
-    marginTop: -4,
+    marginTop: -3,
     position: 'absolute',
     top: 0,
     width: 12,

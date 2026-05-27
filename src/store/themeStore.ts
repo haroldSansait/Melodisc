@@ -15,10 +15,12 @@ type ThemeState = {
   primaryAccent: string;
   accentColor: string;
   displayName: string;
+  graphicsQuality: 'high' | 'low';
   isHydrated: boolean;
   setPrimaryAccent: (primaryAccent: string) => void;
   setAccentColor: (accentColor: string) => void;
   setDisplayName: (name: string) => void;
+  setGraphicsQuality: (quality: 'high' | 'low') => void;
   hydrateFromFirestore: (uid: string) => Promise<void>;
   resetHydration: () => void;
 };
@@ -39,6 +41,7 @@ export const useThemeStore = create<ThemeState>(set => ({
   primaryAccent: '#BDEBFF',
   accentColor: '#BDEBFF',
   displayName: '',
+  graphicsQuality: 'high',
   isHydrated: false,
 
   setPrimaryAccent: primaryAccent => {
@@ -83,6 +86,16 @@ export const useThemeStore = create<ThemeState>(set => ({
     saveUserProfile(user.uid, { displayName: name }).catch(() => {});
   },
 
+  setGraphicsQuality: quality => {
+    set({ graphicsQuality: quality });
+
+    const user = useAuthStore.getState().user;
+
+    if (user) {
+      saveUserProfile(user.uid, { graphicsQuality: quality }).catch(() => {});
+    }
+  },
+
   hydrateFromFirestore: async uid => {
     try {
       const profile = await fetchUserProfile(uid);
@@ -92,6 +105,7 @@ export const useThemeStore = create<ThemeState>(set => ({
           primaryAccent: profile.primaryAccent ?? state.primaryAccent,
           accentColor: profile.primaryAccent ?? state.accentColor,
           displayName: profile.displayName ?? state.displayName,
+          graphicsQuality: profile.graphicsQuality ?? state.graphicsQuality,
         }));
       }
     } finally {
@@ -105,6 +119,7 @@ export const useThemeStore = create<ThemeState>(set => ({
       displayName: '',
       primaryAccent: '#BDEBFF',
       accentColor: '#BDEBFF',
+      graphicsQuality: 'high',
     });
   },
 }));

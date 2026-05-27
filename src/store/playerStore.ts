@@ -28,6 +28,7 @@ type PlayerState = {
   nextTrack: () => void;
   previousTrack: () => void;
   autoAdvanceToNext: () => void;
+  seek: (progressPercent: number) => void;
   reset: () => void;
 };
 
@@ -451,6 +452,40 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // The deck watches this flag, triggers eject animation,
     // then calls nextTrack() after the animation completes.
     set({ isAutoAdvancing: true });
+
+    // Fallback: if the 3D TurntableDeck is not mounted (e.g. playing from Library or on another screen),
+    // or doesn't clear the flag within 250ms, advance to the next track directly.
+    setTimeout(() => {
+      const state = get();
+      if (state.isAutoAdvancing) {
+        set({ isAutoAdvancing: false });
+        state.nextTrack();
+      }
+    }, 250);
+  },
+
+  seek: (progressPercent: number) => {
+    const { duration } = get();
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    if (!Number.isFinite(progressPercent) || progressPercent < 0 || progressPercent > 1) return;
+
+    const targetTime = progressPercent * duration;
+    if (!Number.isFinite(targetTime)) return;
+
+    if (isNative) {
+      if (nativeSound) {
+        nativeSound.setPositionAsync(targetTime * 1000).catch(() => {});
+      }
+    } else {
+      if (webAudio) {
+        webAudio.currentTime = targetTime;
+      }
+    }
+
+    set({
+      currentTime: targetTime,
+      progress: progressPercent,
+    });
   },
 
   reset: () => {

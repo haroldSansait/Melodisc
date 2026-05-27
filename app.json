@@ -5,7 +5,7 @@
     "scheme": "melodisc",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./src/assets/melodisc_logo.png",
+    "icon": "./src/assets/melodisc_app_cover.png",
     "userInterfaceStyle": "dark",
     "splash": {
       "image": "./src/assets/melodisc_logo.png",
@@ -14,9 +14,10 @@
     },
     "android": {
       "package": "com.vibemotion.melodisc",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1,
       "adaptiveIcon": {
-        "foregroundImage": "./src/assets/melodisc_logo.png",
+        "foregroundImage": "./src/assets/melodisc_app_cover.png",
         "backgroundColor": "#121214"
       },
       "permissions": [
@@ -25,13 +26,14 @@
       ]
     },
     "plugins": [
-      "expo-av"
+      "expo-av",
+      "@react-native-google-signin/google-signin"
     ],
+    "owner": "hksansait",
     "extra": {
       "eas": {
-        "projectId": "b191ab36-12be-41be-84de-90af48d18036"
+        "projectId": "c63d181a-6713-4e17-9d94-603652febfca"
       }
-    },
-    "owner": "haroldksansait"
+    }
   }
 }

@@ -30,6 +30,10 @@ import {
   webGlassStyle,
   webGlassStyleStrong,
 } from './src/theme/glassStyles';
+import {
+  SafeAreaProvider,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 
 type AuthView = 'login' | 'signup';
 type AppTab = 'Home' | 'Search' | 'Library' | 'Profile';
@@ -138,7 +142,7 @@ const spinnerStyles = StyleSheet.create({
 });
 
 // ── Main App ──
-function App() {
+function AppContent() {
   const [authView, setAuthView] = useState<AuthView>('login');
   const [currentTab, setCurrentTab] = useState<AppTab>('Home');
   const [isPlayerVisible, setIsPlayerVisible] = useState(false);
@@ -148,12 +152,14 @@ function App() {
   const [newPlaylistName, setNewPlaylistName] = useState('');
   const { height: windowHeight } = useWindowDimensions();
   const user = useAuthStore(state => state.user);
-  const isLoading = useAuthStore(state => state.isLoading);
+  const isInitialLoading = useAuthStore(state => state.isInitialLoading);
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const primaryAccent = useThemeStore(state => state.primaryAccent);
   const isHydrated = useThemeStore(state => state.isHydrated);
   const playlists = usePlaylistStore(state => state.playlists);
   const isPlaylistsLoaded = usePlaylistStore(state => state.isLoaded);
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, 0);
   const playerSlide = useRef(new Animated.Value(0)).current;
   const playerBackdropOpacity = useRef(new Animated.Value(0)).current;
 
@@ -306,7 +312,7 @@ function App() {
   };
 
   // ── Loading (auth or hydration) ──
-  if (isLoading && !user) {
+  if (isInitialLoading) {
     return <GlassSpinner />;
   }
 
@@ -326,7 +332,16 @@ function App() {
         {currentTrack ? <MiniPlayer onOpenPlayer={openPlayer} /> : null}
 
         {/* Layer 2 – Bottom Navigation */}
-        <View style={[styles.bottomNav, webGlassStyle]}>
+        <View
+          style={[
+            styles.bottomNav,
+            webGlassStyle,
+            {
+              minHeight: 70 + bottomInset,
+              paddingBottom: 8 + bottomInset,
+            },
+          ]}
+        >
           {TAB_CONFIG.map(({ key, icon: Icon }) => {
             const isActive = key === currentTab;
             const iconColor = isActive ? primaryAccent : '#B3B3B3';
@@ -598,5 +613,13 @@ const styles = StyleSheet.create({
     zIndex: 99,
   },
 });
+
+function App() {
+  return (
+    <SafeAreaProvider>
+      <AppContent />
+    </SafeAreaProvider>
+  );
+}
 
 export default App;

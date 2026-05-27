@@ -3,8 +3,11 @@ import {
   Animated,
   Easing,
   Image,
+  PanResponder,
+  type PanResponderGestureState,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -13,7 +16,7 @@ import {
   useWindowDimensions,
   type GestureResponderEvent,
 } from 'react-native';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react-native';
 
 import { TurntableDeck } from '../components/turntable/TurntableDeck';
 import { artworkAssets } from '../constants/assetRegistry';
@@ -33,13 +36,6 @@ const ENVIRONMENT_THEMES = [
   { id: 'warm_vibe' as const, label: 'Golden Hour' },
 ];
 
-function formatTime(seconds: number): string {
-  const totalSeconds = Math.floor(seconds);
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = totalSeconds % 60;
-  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-}
-
 function getGreeting(): string {
   const hour = new Date().getHours();
   if (hour >= 5 && hour < 12) return 'Good Morning';
@@ -58,8 +54,6 @@ export function HomeScreen({
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const playTrack = usePlayerStore(state => state.playTrack);
   const recentTracks = usePlayerStore(state => state.recentTracks);
-  const currentTime = usePlayerStore(state => state.currentTime);
-  const duration = usePlayerStore(state => state.duration);
   const environmentTheme = useThemeStore(state => state.environmentTheme);
   const setEnvironmentTheme = useThemeStore(state => state.setEnvironmentTheme);
 
@@ -75,10 +69,8 @@ export function HomeScreen({
 
   // ── Drawer state ──
   const [isTopOpen, setIsTopOpen] = useState(false);
-  const [isBottomOpen, setIsBottomOpen] = useState(false);
-  
+
   const topDrawerAnim = useRef(new Animated.Value(0)).current;
-  const bottomDrawerAnim = useRef(new Animated.Value(0)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
 
   const DRAWER_HEIGHT = Math.min(screenHeight * 0.75, 700);
@@ -86,11 +78,6 @@ export function HomeScreen({
   const toggleTopDrawer = useCallback(() => {
     const toValue = isTopOpen ? 0 : 1;
     setIsTopOpen(!isTopOpen);
-    
-    if (!isTopOpen && isBottomOpen) {
-      setIsBottomOpen(false);
-      Animated.timing(bottomDrawerAnim, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    }
 
     Animated.parallel([
       Animated.timing(topDrawerAnim, {
@@ -103,49 +90,44 @@ export function HomeScreen({
         toValue,
         duration: 400,
         useNativeDriver: true,
-      })
-    ]).start();
-  }, [isTopOpen, isBottomOpen, topDrawerAnim, bottomDrawerAnim, backdropOpacity]);
-
-  const toggleBottomDrawer = useCallback(() => {
-    const toValue = isBottomOpen ? 0 : 1;
-    setIsBottomOpen(!isBottomOpen);
-
-    if (!isBottomOpen && isTopOpen) {
-      setIsTopOpen(false);
-      Animated.timing(topDrawerAnim, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
-    }
-
-    Animated.parallel([
-      Animated.timing(bottomDrawerAnim, {
-        toValue,
-        duration: 400,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
       }),
-      Animated.timing(backdropOpacity, {
-        toValue,
-        duration: 400,
-        useNativeDriver: true,
-      })
     ]).start();
-  }, [isBottomOpen, isTopOpen, bottomDrawerAnim, topDrawerAnim, backdropOpacity]);
+  }, [isTopOpen, topDrawerAnim, backdropOpacity]);
 
   const closeDrawers = useCallback(() => {
     setIsTopOpen(false);
-    setIsBottomOpen(false);
-    
+
     Animated.parallel([
       Animated.timing(topDrawerAnim, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(bottomDrawerAnim, { toValue: 0, duration: 400, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
-      Animated.timing(backdropOpacity, { toValue: 0, duration: 400, useNativeDriver: true })
+      Animated.timing(backdropOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
     ]).start();
-  }, [topDrawerAnim, bottomDrawerAnim, backdropOpacity]);
+  }, [topDrawerAnim, backdropOpacity]);
+
+  // Ref to prevent stale closures in PanResponder callbacks
+  const stateRef = useRef({ isTopOpen, toggleTopDrawer });
+  useEffect(() => {
+    stateRef.current = { isTopOpen, toggleTopDrawer };
+  }, [isTopOpen, toggleTopDrawer]);
+
+  const topHandlePanResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_: any, gestureState: PanResponderGestureState) => Math.abs(gestureState.dy) > 5,
+      onPanResponderRelease: (_: any, gestureState: PanResponderGestureState) => {
+        const { isTopOpen: latestIsTopOpen, toggleTopDrawer: latestToggleTopDrawer } = stateRef.current;
+        if (!latestIsTopOpen && gestureState.dy > 15) {
+          latestToggleTopDrawer();
+        } else if (latestIsTopOpen && gestureState.dy < -15) {
+          latestToggleTopDrawer();
+        }
+      },
+    })
+  ).current;
 
   // Capture card tap and trigger fly-and-dock
   const handleTrackPress = useCallback(
-    (track: Track, event: GestureResponderEvent) => {
-      closeDrawers(); // Automatically close drawers to reveal Turntable
+    (track: Track, _event: GestureResponderEvent) => {
+      closeDrawers();
       setDockingTrack({ ...track });
     },
     [closeDrawers],
@@ -153,7 +135,10 @@ export function HomeScreen({
 
   const handleDockComplete = useCallback(
     (track: Track) => {
-      playTrack(track);
+      const current = usePlayerStore.getState().currentTrack;
+      if (current?.id !== track.id) {
+        playTrack(track);
+      }
       setDockingTrack(null);
     },
     [playTrack],
@@ -163,27 +148,19 @@ export function HomeScreen({
     onOpenPlayer();
   }, [onOpenPlayer]);
 
-  const handleAddTrack = (event: GestureResponderEvent, track: Track) => {
-    event.stopPropagation();
-    onRequestAddToPlaylist(track);
-  };
-
   // Theme cycling with cross-fade
   const cycleTheme = useCallback((direction: 1 | -1) => {
     const currentIndex = ENVIRONMENT_THEMES.findIndex(t => t.id === environmentTheme);
     const nextIndex = (currentIndex + direction + ENVIRONMENT_THEMES.length) % ENVIRONMENT_THEMES.length;
     const nextTheme = ENVIRONMENT_THEMES[nextIndex];
 
-    // Fade out
     Animated.timing(sceneOpacity, {
       toValue: 0,
       duration: 400,
       easing: Easing.out(Easing.cubic),
       useNativeDriver: true,
     }).start(() => {
-      // Switch theme at the opacity trough
       setEnvironmentTheme(nextTheme.id);
-      // Fade in
       Animated.timing(sceneOpacity, {
         toValue: 1,
         duration: 500,
@@ -195,63 +172,20 @@ export function HomeScreen({
 
   const currentThemeLabel = ENVIRONMENT_THEMES.find(t => t.id === environmentTheme)?.label ?? 'Default Room';
 
-  const renderTrackRow = (track: Track) => {
-    const isActive = currentTrack?.id === track.id;
-
-    return (
-      <TouchableOpacity
-        activeOpacity={0.82}
-        key={track.id}
-        onPress={event => handleTrackPress(track, event)}
-        style={[
-          styles.trackCard,
-          webGlassStyle,
-          isActive && {
-            borderColor: primaryAccent,
-            boxShadow: activeGlow(primaryAccent),
-          },
-        ]}
-      >
-        <Image
-          source={
-            Platform.OS !== 'web' && artworkAssets[track.id]
-              ? artworkAssets[track.id]
-              : { uri: track.artwork }
-          }
-          style={[
-            styles.trackThumb,
-            isActive && { borderColor: primaryAccent, borderWidth: 2 },
-          ]}
-        />
-        <View style={styles.trackInfo}>
-          <Text numberOfLines={1} style={styles.trackTitle}>{track.title}</Text>
-          <Text numberOfLines={1} style={styles.trackArtist}>{track.artist}</Text>
-        </View>
-        <Text numberOfLines={1} style={[styles.genre, { color: primaryAccent }]}>{track.genre}</Text>
-        <TouchableOpacity
-          activeOpacity={0.76}
-          onPress={event => handleAddTrack(event, track)}
-          style={[styles.addButton, { borderColor: primaryAccent }]}
-        >
-          <Text style={[styles.addButtonText, { color: primaryAccent }]}>+</Text>
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  };
+  const statusBarHeight = Platform.select({
+    android: StatusBar.currentHeight || 0,
+    ios: 44,
+    default: 0,
+  });
 
   const topTranslateY = topDrawerAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [-DRAWER_HEIGHT, 0],
-  });
-
-  const bottomTranslateY = bottomDrawerAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [DRAWER_HEIGHT, 0],
+    outputRange: [-DRAWER_HEIGHT + statusBarHeight, statusBarHeight],
   });
 
   return (
     <View style={styles.screen}>
-      
+
       {/* Focal Center: 3D Turntable */}
       <Animated.View style={[styles.turntableWrap, { opacity: sceneOpacity }]}>
         <TurntableDeck
@@ -264,17 +198,17 @@ export function HomeScreen({
       {/* Backdrop for closing drawers */}
       <TouchableWithoutFeedback onPress={closeDrawers}>
         <Animated.View
-          pointerEvents={(isTopOpen || isBottomOpen) ? 'auto' : 'none'}
+          pointerEvents={isTopOpen ? 'auto' : 'none'}
           style={[styles.backdrop, { opacity: backdropOpacity }]}
         />
       </TouchableWithoutFeedback>
 
       {/* ── Top Drawer ("Jump Back In") ── */}
-      <Animated.View 
+      <Animated.View
         style={[
-          styles.drawerTop, 
-          webGlassStyleStrong, 
-          { height: DRAWER_HEIGHT, transform: [{ translateY: topTranslateY }] }
+          styles.drawerTop,
+          webGlassStyleStrong,
+          { height: DRAWER_HEIGHT, transform: [{ translateY: topTranslateY }] },
         ]}
       >
         <ScrollView contentContainerStyle={styles.drawerContent} showsVerticalScrollIndicator={false}>
@@ -320,9 +254,15 @@ export function HomeScreen({
             })}
           </View>
         </ScrollView>
+
         {/* Top Controls Container */}
         <View style={styles.topControlsContainer}>
-          <TouchableOpacity activeOpacity={0.8} onPress={toggleTopDrawer} style={styles.drawerHandleBottom}>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={toggleTopDrawer}
+            style={styles.drawerHandleBottom}
+            {...topHandlePanResponder.panHandlers}
+          >
             <Text style={styles.drawerHandleText}>Jump Back In</Text>
             <ChevronDown color="#FFFFFF" size={20} strokeWidth={2.5} />
           </TouchableOpacity>
@@ -336,34 +276,6 @@ export function HomeScreen({
             </TouchableOpacity>
           </View>
         </View>
-      </Animated.View>
-
-      {/* ── Bottom Drawer ("All Tracks") ── */}
-      <Animated.View 
-        style={[
-          styles.drawerBottom, 
-          webGlassStyleStrong, 
-          { height: DRAWER_HEIGHT, transform: [{ translateY: bottomTranslateY }] }
-        ]}
-      >
-        {/* Floating Toggle Arrow */}
-        <TouchableOpacity activeOpacity={0.8} onPress={toggleBottomDrawer} style={styles.drawerHandleTop}>
-          <ChevronUp color="#FFFFFF" size={20} strokeWidth={2.5} />
-          <Text style={styles.drawerHandleText}>All Tracks</Text>
-          {currentTrack && duration > 0 && (
-            <View style={styles.durationPill}>
-              <Text style={[styles.durationText, { color: primaryAccent }]}>
-                {formatTime(currentTime)} / {formatTime(duration)}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
-
-        <ScrollView contentContainerStyle={styles.drawerContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.trackList}>
-            {tracks.map(track => renderTrackRow(track))}
-          </View>
-        </ScrollView>
       </Animated.View>
 
     </View>
@@ -409,19 +321,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     backgroundColor: 'rgba(18, 18, 22, 0.92)',
   },
-  drawerBottom: {
-    position: 'absolute',
-    bottom: 0, // Sits slightly above bottom nav usually, but absolute to viewport here
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    backgroundColor: 'rgba(18, 18, 22, 0.92)',
-    paddingBottom: 90, // Leave room for miniplayer and nav
-  },
   drawerContent: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -448,23 +347,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
     borderTopWidth: 0,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  drawerHandleTop: {
-    position: 'absolute',
-    top: -40,
-    alignSelf: 'center',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(25, 25, 30, 0.9)',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    gap: 8,
-    borderWidth: 1,
-    borderBottomWidth: 0,
     borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   drawerHandleText: {
@@ -501,18 +383,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
     minWidth: 80,
     textAlign: 'center',
-  },
-  durationPill: {
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.08)',
-  },
-  durationText: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
   },
   header: {
     marginBottom: 8,
@@ -564,7 +434,7 @@ const styles = StyleSheet.create({
   jumpGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
   },
   jumpCard: {
     alignItems: 'center',
@@ -578,6 +448,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 0,
     width: '48.5%',
+    marginBottom: 10,
   },
   jumpArtwork: {
     borderRadius: 0,
@@ -598,58 +469,5 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: 3,
-  },
-  trackList: {
-    gap: 10,
-  },
-  trackCard: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 10,
-    borderWidth: 1,
-    flexDirection: 'row',
-    gap: 12,
-    minHeight: 72,
-    padding: 12,
-  },
-  trackThumb: {
-    borderRadius: 8,
-    height: 48,
-    width: 48,
-  },
-  trackInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  trackTitle: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
-    letterSpacing: 0,
-  },
-  trackArtist: {
-    color: '#B3B3B3',
-    fontSize: 12,
-    lineHeight: 18,
-    marginTop: 3,
-  },
-  genre: {
-    fontSize: 11,
-    fontWeight: '800',
-    maxWidth: 100,
-  },
-  addButton: {
-    alignItems: 'center',
-    borderRadius: 999,
-    borderWidth: 1,
-    height: 34,
-    justifyContent: 'center',
-    width: 34,
-  },
-  addButtonText: {
-    fontSize: 20,
-    fontWeight: '700',
-    lineHeight: 22,
   },
 });

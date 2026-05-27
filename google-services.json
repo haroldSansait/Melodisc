@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "889352597122",
+    "project_id": "melodisc-57fd2",
+    "storage_bucket": "melodisc-57fd2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:889352597122:android:ab846e2f626842826d8e9b",
+        "android_client_info": {
+          "package_name": "com.vibemotion.melodisc"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "889352597122-tb6gon3vpj1nfgl2r8apptd0dsk4lrrn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vibemotion.melodisc",
+            "certificate_hash": "cc3ce536335faf8296153541c92658e98ba794f7"
+          }
+        },
+        {
+          "client_id": "889352597122-vgdarfi9gdsj338u1r3ffbivpm2et6lm.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBcVer72PzcDh0TLyggZ6MVdkS1feKq2c4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "889352597122-vgdarfi9gdsj338u1r3ffbivpm2et6lm.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

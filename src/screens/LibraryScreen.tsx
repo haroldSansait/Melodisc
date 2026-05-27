@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Image,
+  Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,21 +14,28 @@ import {
   ArrowDown,
   ArrowUp,
   Check,
+  CheckCircle2,
   ListMusic,
   Pencil,
   Play,
   Plus,
+  PlusCircle,
   Shuffle,
   Trash2,
   X,
 } from 'lucide-react-native';
 
+import { artworkAssets } from '../constants/assetRegistry';
 import { tracks, type Track } from '../constants/tracks';
 import { useAuthStore } from '../store/authStore';
 import { usePlayerStore } from '../store/playerStore';
 import { usePlaylistStore } from '../store/playlistStore';
 import { useThemeStore } from '../store/themeStore';
-import { webGlassStyle } from '../theme/glassStyles';
+import { webGlassStyle, webGlassStyleStrong } from '../theme/glassStyles';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────────────────────────
 
 function resolveTrack(trackId: string): Track | null {
   return tracks.find(t => t.id === trackId) ?? null;
@@ -40,6 +49,226 @@ function shuffleArray<T>(arr: T[]): T[] {
   }
   return shuffled;
 }
+
+/** Platform-conditional artwork source. */
+function resolveArtworkSource(trackId: string, artworkUri: string) {
+  if (Platform.OS !== 'web' && artworkAssets[trackId]) {
+    return artworkAssets[trackId];
+  }
+  return { uri: artworkUri };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AddPlaylistModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+type AddPlaylistModalProps = {
+  visible: boolean;
+  onClose: () => void;
+  primaryAccent: string;
+};
+
+function AddPlaylistModal({
+  visible,
+  onClose,
+  primaryAccent,
+}: AddPlaylistModalProps) {
+  const uid = useAuthStore(state => state.user?.uid);
+  const recentTracks = usePlayerStore(state => state.recentTracks);
+
+  const [playlistName, setPlaylistName] = useState('');
+  const [selectedTrackIds, setSelectedTrackIds] = useState<string[]>([]);
+  const [suggestedTracks, setSuggestedTracks] = useState<Track[]>([]);
+
+  // Generate suggested tracks when the modal opens
+  useEffect(() => {
+    if (visible) {
+      const sampled = shuffleArray(tracks).slice(0, 5);
+      setSuggestedTracks(sampled);
+    } else {
+      setPlaylistName('');
+      setSelectedTrackIds([]);
+      setSuggestedTracks([]);
+    }
+  }, [visible]);
+
+  const toggleTrackSelection = useCallback((trackId: string) => {
+    setSelectedTrackIds(prev =>
+      prev.includes(trackId)
+        ? prev.filter(id => id !== trackId)
+        : [...prev, trackId],
+    );
+  }, []);
+
+  const handleCreatePlaylist = useCallback(async () => {
+    if (!uid) {
+      return;
+    }
+
+    const store = usePlaylistStore.getState();
+    const playlistId = await store.createPlaylist(
+      uid,
+      playlistName.trim() || 'Untitled Playlist',
+    );
+
+    for (const trackId of selectedTrackIds) {
+      store.addTrackToPlaylist(uid, trackId, playlistId);
+    }
+
+    onClose();
+  }, [uid, playlistName, selectedTrackIds, onClose]);
+
+  const recentTrackIds = useMemo(
+    () => new Set(recentTracks.map(t => t.id)),
+    [recentTracks],
+  );
+
+  const filteredSuggested = useMemo(
+    () => suggestedTracks.filter(t => !recentTrackIds.has(t.id)),
+    [suggestedTracks, recentTrackIds],
+  );
+
+  const renderTrackItem = (track: Track) => {
+    const isSelected = selectedTrackIds.includes(track.id);
+
+    return (
+      <View key={track.id} style={modalStyles.trackRow}>
+        <Image
+          source={resolveArtworkSource(track.id, track.artwork)}
+          style={modalStyles.trackArt}
+        />
+        <View style={modalStyles.trackInfo}>
+          <Text numberOfLines={1} style={modalStyles.trackTitle}>
+            {track.title}
+          </Text>
+          <Text numberOfLines={1} style={modalStyles.trackArtist}>
+            {track.artist}
+          </Text>
+        </View>
+        <TouchableOpacity
+          accessibilityLabel={
+            isSelected
+              ? `Remove ${track.title} from selection`
+              : `Add ${track.title} to playlist`
+          }
+          activeOpacity={0.7}
+          onPress={() => toggleTrackSelection(track.id)}
+          style={modalStyles.toggleBtn}
+        >
+          {isSelected ? (
+            <CheckCircle2
+              color={primaryAccent}
+              fill={`${primaryAccent}22`}
+              size={26}
+              strokeWidth={2}
+            />
+          ) : (
+            <PlusCircle color="#77777D" size={26} strokeWidth={1.5} />
+          )}
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={onClose}
+      transparent
+      visible={visible}
+    >
+      <View style={modalStyles.backdrop}>
+        <View style={[modalStyles.container, webGlassStyleStrong]}>
+          {/* Modal Header */}
+          <View style={modalStyles.header}>
+            <Text style={modalStyles.headerTitle}>New Playlist</Text>
+            <TouchableOpacity
+              accessibilityLabel="Close modal"
+              activeOpacity={0.7}
+              onPress={onClose}
+              style={modalStyles.closeBtn}
+            >
+              <X color="#FFFFFF" size={18} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={modalStyles.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {/* Playlist Name Input */}
+            <TextInput
+              autoFocus
+              onChangeText={setPlaylistName}
+              placeholder="Playlist Name"
+              placeholderTextColor="#77777D"
+              style={modalStyles.nameInput}
+              value={playlistName}
+            />
+
+            {/* Add from Recents */}
+            {recentTracks.length > 0 ? (
+              <View style={modalStyles.section}>
+                <Text
+                  style={[modalStyles.sectionTitle, { color: primaryAccent }]}
+                >
+                  Add from Recents
+                </Text>
+                <View style={modalStyles.trackList}>
+                  {recentTracks.map(track => renderTrackItem(track))}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Suggested Tracks */}
+            <View style={modalStyles.section}>
+              <Text
+                style={[modalStyles.sectionTitle, { color: primaryAccent }]}
+              >
+                Suggested Tracks
+              </Text>
+              <View style={modalStyles.trackList}>
+                {filteredSuggested.length === 0 ? (
+                  <Text style={modalStyles.emptyText}>
+                    No suggestions available right now.
+                  </Text>
+                ) : (
+                  filteredSuggested.map(track => renderTrackItem(track))
+                )}
+              </View>
+            </View>
+          </ScrollView>
+
+          {/* Action Buttons */}
+          <View style={modalStyles.actionRow}>
+            <TouchableOpacity
+              activeOpacity={0.78}
+              onPress={onClose}
+              style={modalStyles.cancelBtn}
+            >
+              <Text style={modalStyles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.82}
+              onPress={handleCreatePlaylist}
+              style={[
+                modalStyles.createBtn,
+                { backgroundColor: primaryAccent },
+              ]}
+            >
+              <Plus color="#000000" size={18} strokeWidth={2.5} />
+              <Text style={modalStyles.createBtnText}>Create Playlist</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LibraryScreen
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function LibraryScreen() {
   const primaryAccent = useThemeStore(state => state.primaryAccent);
@@ -56,6 +285,7 @@ export function LibraryScreen() {
     null,
   );
   const [suggestedTracks, setSuggestedTracks] = useState<Track[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const uid = user?.uid;
 
@@ -178,12 +408,23 @@ export function LibraryScreen() {
       >
         <Text style={styles.title}>Your Library</Text>
 
+        {/* ── + Add Playlist Button ── */}
+        <TouchableOpacity
+          accessibilityLabel="Add a new playlist"
+          activeOpacity={0.82}
+          onPress={() => setModalVisible(true)}
+          style={[styles.addPlaylistBtn, { backgroundColor: primaryAccent }]}
+        >
+          <Plus color="#000000" size={20} strokeWidth={2.5} />
+          <Text style={styles.addPlaylistBtnText}>Add Playlist</Text>
+        </TouchableOpacity>
+
         {playlists.length === 0 ? (
           <View style={[styles.emptyCard, webGlassStyle]}>
             <ListMusic color="#77777D" size={40} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>No playlists yet</Text>
             <Text style={styles.emptySubtitle}>
-              Use the + button on any track to create your first playlist.
+              Tap "Add Playlist" above to create your first playlist.
             </Text>
           </View>
         ) : null}
@@ -197,69 +438,71 @@ export function LibraryScreen() {
               .filter(Boolean) as Track[];
 
             return (
-              <View
-                key={playlist.id}
+              <View key={playlist.id}
                 style={[styles.playlistCard, webGlassStyle]}
               >
                 {/* Playlist header */}
                 <View style={styles.playlistHeader}>
-                  <View
-                    style={[
-                      styles.playlistIcon,
-                      { backgroundColor: `${primaryAccent}22` },
-                    ]}
-                  >
-                    <ListMusic
-                      color={primaryAccent}
-                      size={20}
-                      strokeWidth={2}
-                    />
+                  <View style={styles.playlistHeaderTopRow}>
+                    <View
+                      style={[
+                        styles.playlistIcon,
+                        { backgroundColor: `${primaryAccent}22` },
+                      ]}
+                    >
+                      <ListMusic
+                        color={primaryAccent}
+                        size={20}
+                        strokeWidth={2}
+                      />
+                    </View>
+
+                    {isEditing ? (
+                      <View style={styles.renameRow}>
+                        <TextInput
+                          autoFocus
+                          onChangeText={setRenameInput}
+                          onSubmitEditing={() => handleRename(playlist.id)}
+                          style={styles.renameInput}
+                          value={renameInput}
+                        />
+                        <TouchableOpacity
+                          activeOpacity={0.78}
+                          onPress={() => handleRename(playlist.id)}
+                          style={[
+                            styles.iconBtn,
+                            { backgroundColor: primaryAccent },
+                          ]}
+                        >
+                          <Check color="#000000" size={14} strokeWidth={3} />
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          activeOpacity={0.78}
+                          onPress={handleStopEditing}
+                          style={styles.iconBtn}
+                        >
+                          <X color="#FFFFFF" size={14} strokeWidth={2.5} />
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.playlistHeaderText}>
+                        <Text numberOfLines={2} style={styles.playlistName}>
+                          {playlist.name}
+                        </Text>
+                        <Text style={styles.playlistMeta}>
+                          {resolvedTracks.length}{' '}
+                          {resolvedTracks.length === 1 ? 'track' : 'tracks'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
 
-                  {isEditing ? (
-                    <View style={styles.renameRow}>
-                      <TextInput
-                        autoFocus
-                        onChangeText={setRenameInput}
-                        onSubmitEditing={() => handleRename(playlist.id)}
-                        style={styles.renameInput}
-                        value={renameInput}
-                      />
-                      <TouchableOpacity
-                        activeOpacity={0.78}
-                        onPress={() => handleRename(playlist.id)}
-                        style={[
-                          styles.iconBtn,
-                          { backgroundColor: primaryAccent },
-                        ]}
-                      >
-                        <Check color="#000000" size={14} strokeWidth={3} />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        activeOpacity={0.78}
-                        onPress={handleStopEditing}
-                        style={styles.iconBtn}
-                      >
-                        <X color="#FFFFFF" size={14} strokeWidth={2.5} />
-                      </TouchableOpacity>
-                    </View>
-                  ) : (
-                    <View style={styles.playlistHeaderText}>
-                      <Text numberOfLines={1} style={styles.playlistName}>
-                        {playlist.name}
-                      </Text>
-                      <Text style={styles.playlistMeta}>
-                        {resolvedTracks.length}{' '}
-                        {resolvedTracks.length === 1 ? 'track' : 'tracks'}
-                      </Text>
-                    </View>
-                  )}
-
-                  {/* Action buttons row */}
+                  {/* Action buttons row — on its own line below the name */}
                   {!isEditing ? (
                     <View style={styles.headerActions}>
                       {/* Play All */}
                       <TouchableOpacity
+                        accessibilityLabel="Play all tracks"
                         activeOpacity={0.78}
                         onPress={() => handlePlayAll(playlist.trackIds)}
                         disabled={resolvedTracks.length === 0}
@@ -278,6 +521,7 @@ export function LibraryScreen() {
                       </TouchableOpacity>
                       {/* Shuffle */}
                       <TouchableOpacity
+                        accessibilityLabel="Shuffle play"
                         activeOpacity={0.78}
                         onPress={() => handleShufflePlay(playlist.trackIds)}
                         disabled={resolvedTracks.length < 2}
@@ -294,6 +538,7 @@ export function LibraryScreen() {
                       </TouchableOpacity>
                       {/* Add Tracks */}
                       <TouchableOpacity
+                        accessibilityLabel="Add tracks to playlist"
                         activeOpacity={0.78}
                         onPress={() => handleToggleAddTracks(playlist.id)}
                         style={[
@@ -311,6 +556,7 @@ export function LibraryScreen() {
                       </TouchableOpacity>
                       {/* Edit */}
                       <TouchableOpacity
+                        accessibilityLabel="Edit playlist"
                         activeOpacity={0.78}
                         onPress={() =>
                           handleStartEditing(playlist.id, playlist.name)
@@ -325,6 +571,7 @@ export function LibraryScreen() {
                       </TouchableOpacity>
                       {/* Delete */}
                       <TouchableOpacity
+                        accessibilityLabel="Delete playlist"
                         activeOpacity={0.78}
                         onPress={() => handleDeletePlaylist(playlist.id)}
                         style={styles.iconBtn}
@@ -371,7 +618,10 @@ export function LibraryScreen() {
                         return (
                           <View key={track.id} style={styles.addTrackRow}>
                             <Image
-                              source={{ uri: track.artwork }}
+                              source={resolveArtworkSource(
+                                track.id,
+                                track.artwork,
+                              )}
                               style={styles.addTrackArt}
                             />
                             <View style={styles.addTrackInfo}>
@@ -449,7 +699,6 @@ export function LibraryScreen() {
 
                       return (
                         <View key={track.id} style={styles.savedTrackRow}>
-                          {/* Play on tap */}
                           <TouchableOpacity
                             activeOpacity={0.82}
                             onPress={() =>
@@ -461,7 +710,10 @@ export function LibraryScreen() {
                             style={styles.savedTrackPlayable}
                           >
                             <Image
-                              source={{ uri: track.artwork }}
+                              source={resolveArtworkSource(
+                                track.id,
+                                track.artwork,
+                              )}
                               style={[
                                 styles.savedTrackArt,
                                 isActive && {
@@ -489,10 +741,10 @@ export function LibraryScreen() {
                             </View>
                           </TouchableOpacity>
 
-                          {/* Reorder + Remove controls */}
                           {isEditing ? (
                             <View style={styles.trackActions}>
                               <TouchableOpacity
+                                accessibilityLabel="Move track up"
                                 activeOpacity={0.78}
                                 disabled={index === 0}
                                 onPress={() =>
@@ -515,6 +767,7 @@ export function LibraryScreen() {
                                 />
                               </TouchableOpacity>
                               <TouchableOpacity
+                                accessibilityLabel="Move track down"
                                 activeOpacity={0.78}
                                 disabled={
                                   index === resolvedTracks.length - 1
@@ -540,6 +793,7 @@ export function LibraryScreen() {
                                 />
                               </TouchableOpacity>
                               <TouchableOpacity
+                                accessibilityLabel="Remove track"
                                 activeOpacity={0.78}
                                 onPress={() =>
                                   handleRemoveTrack(playlist.id, track.id)
@@ -564,9 +818,20 @@ export function LibraryScreen() {
           })}
         </View>
       </ScrollView>
+
+      {/* ── Add Playlist Modal ── */}
+      <AddPlaylistModal
+        onClose={() => setModalVisible(false)}
+        primaryAccent={primaryAccent}
+        visible={modalVisible}
+      />
     </View>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Library Screen Styles
+// ─────────────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: {
@@ -586,6 +851,20 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: '900',
     lineHeight: 36,
+  },
+  addPlaylistBtn: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    flexDirection: 'row',
+    gap: 6,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  addPlaylistBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '800',
   },
   emptyCard: {
     alignItems: 'center',
@@ -619,6 +898,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   playlistHeader: {
+    gap: 10,
+  },
+  playlistHeaderTopRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: 12,
@@ -647,6 +929,7 @@ const styles = StyleSheet.create({
   headerActions: {
     flexDirection: 'row',
     gap: 6,
+    paddingLeft: 54,
   },
   renameRow: {
     alignItems: 'center',
@@ -803,5 +1086,147 @@ const styles = StyleSheet.create({
   },
   disabledBtn: {
     opacity: 0.3,
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Modal Styles
+// ─────────────────────────────────────────────────────────────────────────────
+
+const modalStyles = StyleSheet.create({
+  backdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  container: {
+    backgroundColor: 'rgba(22, 22, 28, 0.97)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    maxHeight: '85%',
+    overflow: 'hidden',
+    width: '100%',
+    maxWidth: 500,
+    alignSelf: 'center',
+  },
+  header: {
+    alignItems: 'center',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  closeBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  scrollContent: {
+    gap: 20,
+    padding: 20,
+  },
+  nameInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+    minHeight: 48,
+    paddingHorizontal: 16,
+  },
+  section: {
+    gap: 10,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  trackList: {
+    gap: 4,
+  },
+  trackRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+    minHeight: 48,
+    paddingVertical: 4,
+  },
+  trackArt: {
+    borderRadius: 6,
+    height: 40,
+    width: 40,
+  },
+  trackInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  trackTitle: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  trackArtist: {
+    color: '#B3B3B3',
+    fontSize: 12,
+    marginTop: 1,
+  },
+  toggleBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+  },
+  emptyText: {
+    color: '#77777D',
+    fontSize: 13,
+    paddingVertical: 8,
+  },
+  actionRow: {
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+  },
+  cancelBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 999,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+  },
+  cancelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  createBtn: {
+    alignItems: 'center',
+    borderRadius: 999,
+    flex: 1.5,
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    minHeight: 46,
+  },
+  createBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

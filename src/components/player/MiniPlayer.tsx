@@ -9,6 +9,7 @@ import {
   type GestureResponderEvent,
 } from 'react-native';
 import { Pause, Play } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { artworkAssets } from '../../constants/assetRegistry';
 import { usePlayerStore } from '../../store/playerStore';
@@ -20,11 +21,15 @@ type MiniPlayerProps = {
 };
 
 export function MiniPlayer({ onOpenPlayer }: MiniPlayerProps) {
+  const insets = useSafeAreaInsets();
   const primaryAccent = useThemeStore(state => state.primaryAccent);
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const isPlaying = usePlayerStore(state => state.isPlaying);
   const progress = usePlayerStore(state => state.progress);
   const togglePlay = usePlayerStore(state => state.togglePlay);
+  const seek = usePlayerStore(state => state.seek);
+
+  const [trackWidth, setTrackWidth] = React.useState(0);
 
   if (!currentTrack) {
     return null;
@@ -35,11 +40,41 @@ export function MiniPlayer({ onOpenPlayer }: MiniPlayerProps) {
     togglePlay();
   };
 
+  const handleLayout = (event: any) => {
+    setTrackWidth(event.nativeEvent.layout.width);
+  };
+
+  const handleProgressPress = (event: GestureResponderEvent) => {
+    event.stopPropagation();
+    if (trackWidth <= 0) return;
+
+    let clickX = event.nativeEvent.locationX;
+
+    // Web Fallback: React Native Web standard clicks don't map locationX directly inside touch events.
+    if (clickX === undefined || isNaN(clickX)) {
+      if (Platform.OS === 'web') {
+        const rect = (event.currentTarget as any)?.getBoundingClientRect();
+        if (rect) {
+          clickX = (event.nativeEvent as any).clientX - rect.left;
+        }
+      }
+    }
+
+    if (clickX === undefined || isNaN(clickX)) return;
+
+    const progressPercent = Math.min(1, Math.max(0, clickX / trackWidth));
+    seek(progressPercent);
+  };
+
   return (
     <TouchableOpacity
       activeOpacity={0.88}
       onPress={onOpenPlayer}
-      style={[styles.container, webGlassStyle]}
+      style={[
+        styles.container,
+        webGlassStyle,
+        { bottom: 82 + Math.max(insets.bottom, 0) },
+      ]}
     >
       {/* Album artwork thumbnail — native uses static require(), web uses URI */}
       {currentTrack.artwork ? (
@@ -83,14 +118,20 @@ export function MiniPlayer({ onOpenPlayer }: MiniPlayerProps) {
       </TouchableOpacity>
 
       {/* Progress bar at the bottom edge */}
-      <View style={styles.progressTrack}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onLayout={handleLayout}
+        onPress={handleProgressPress}
+        style={styles.progressTrack}
+      >
         <View
+          pointerEvents="none"
           style={[
             styles.progressFill,
             { backgroundColor: primaryAccent, width: `${progress * 100}%` },
           ]}
         />
-      </View>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 }
@@ -102,7 +143,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
     borderWidth: 1,
-    bottom: 82,
     flexDirection: 'row',
     gap: 12,
     left: 12,
@@ -151,7 +191,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
     borderRadius: 999,
     bottom: 0,
-    height: 3,
+    height: 6,
     left: 0,
     overflow: 'hidden',
     position: 'absolute',

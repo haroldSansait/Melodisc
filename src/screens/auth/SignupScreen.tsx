@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Image,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react-native';
 
 import { googleLogin, signupEmail } from '../../services/firebase/authService';
 import { useAuthStore } from '../../store/authStore';
@@ -16,6 +17,8 @@ import { webShadowStyle } from '../../theme/glassStyles';
 
 // @ts-ignore Vite resolves PNG imports to URLs for web; Metro resolves them for native.
 import melodiscLogo from '../../assets/melodisc_logo.png';
+// @ts-ignore
+import googleLogo from '../../assets/google_logo.png';
 
 type SignupScreenProps = {
   onShowLogin: () => void;
@@ -23,6 +26,9 @@ type SignupScreenProps = {
 
 const logoSource =
   typeof melodiscLogo === 'string' ? { uri: melodiscLogo } : melodiscLogo;
+
+const googleLogoSource =
+  typeof googleLogo === 'string' ? { uri: googleLogo } : googleLogo;
 
 export function SignupScreen({ onShowLogin }: SignupScreenProps) {
   const primaryAccent = useThemeStore(state => state.primaryAccent);
@@ -33,6 +39,9 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const cardEntrance = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -49,18 +58,33 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
     };
   }, [cardEntrance]);
 
-  const handleSignup = async () => {
+  // ── Password match validation (derived state) ──
+  const passwordsEmpty = password === '' || confirmPassword === '';
+  const passwordsMatch = password === confirmPassword;
+  const confirmFieldTouched = confirmPassword.length > 0;
+
+  const isSubmitDisabled = isLoading || passwordsEmpty || !passwordsMatch;
+
+  const handleSignup = useCallback(async () => {
     if (password !== confirmPassword) {
       setAuthError('Passwords do not match. Please try again.');
       return;
     }
 
     await signupEmail(email.trim(), password);
-  };
+  }, [email, password, confirmPassword, setAuthError]);
 
   const handleGoogleLogin = async () => {
     await googleLogin();
   };
+
+  const togglePasswordVisibility = useCallback(() => {
+    setShowPassword(prev => !prev);
+  }, []);
+
+  const toggleConfirmPasswordVisibility = useCallback(() => {
+    setShowConfirmPassword(prev => !prev);
+  }, []);
 
   const accentTextStyle = { color: primaryAccent };
   const cardAnimatedStyle = {
@@ -101,41 +125,96 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
           style={styles.input}
           value={email}
         />
-        <TextInput
-          autoCapitalize="none"
-          onChangeText={value => {
-            setAuthError(null);
-            setPassword(value);
-          }}
-          placeholder="Password"
-          placeholderTextColor="#77777D"
-          secureTextEntry
-          style={styles.input}
-          value={password}
-        />
-        <TextInput
-          autoCapitalize="none"
-          onChangeText={value => {
-            setAuthError(null);
-            setConfirmPassword(value);
-          }}
-          placeholder="Confirm password"
-          placeholderTextColor="#77777D"
-          secureTextEntry
-          style={styles.input}
-          value={confirmPassword}
-        />
+
+        {/* Password input with visibility toggle */}
+        <View style={styles.passwordContainer}>
+          <TextInput
+            autoCapitalize="none"
+            onChangeText={value => {
+              setAuthError(null);
+              setPassword(value);
+            }}
+            placeholder="Password"
+            placeholderTextColor="#77777D"
+            secureTextEntry={!showPassword}
+            style={styles.passwordInput}
+            value={password}
+          />
+          <TouchableOpacity
+            accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={togglePasswordVisibility}
+            style={styles.eyeButton}
+          >
+            {showPassword ? (
+              <EyeOff color="#77777D" size={20} strokeWidth={2} />
+            ) : (
+              <Eye color="#77777D" size={20} strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Confirm password input with visibility toggle */}
+        <View style={styles.passwordContainer}>
+          <TextInput
+            autoCapitalize="none"
+            onChangeText={value => {
+              setAuthError(null);
+              setConfirmPassword(value);
+            }}
+            placeholder="Confirm password"
+            placeholderTextColor="#77777D"
+            secureTextEntry={!showConfirmPassword}
+            style={styles.passwordInput}
+            value={confirmPassword}
+          />
+          <TouchableOpacity
+            accessibilityLabel={
+              showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'
+            }
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={toggleConfirmPasswordVisibility}
+            style={styles.eyeButton}
+          >
+            {showConfirmPassword ? (
+              <EyeOff color="#77777D" size={20} strokeWidth={2} />
+            ) : (
+              <Eye color="#77777D" size={20} strokeWidth={2} />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Real-time password match indicator */}
+        {confirmFieldTouched ? (
+          passwordsMatch ? (
+            <View style={styles.validationRow}>
+              <CheckCircle2 color="#22c55e" size={18} strokeWidth={2} />
+              <Text style={[styles.validationText, { color: '#22c55e' }]}>
+                Passwords match
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.validationRow}>
+              <AlertCircle color="#ef4444" size={18} strokeWidth={2} />
+              <Text style={[styles.validationText, { color: '#ef4444' }]}>
+                Passwords do not match
+              </Text>
+            </View>
+          )
+        ) : null}
 
         {authError ? <Text style={styles.errorText}>{authError}</Text> : null}
 
         <TouchableOpacity
           activeOpacity={0.82}
-          disabled={isLoading}
+          disabled={isSubmitDisabled}
           onPress={handleSignup}
           style={[
             styles.primaryButton,
             { backgroundColor: primaryAccent },
-            isLoading && styles.disabledButton,
+            isSubmitDisabled && styles.disabledButton,
           ]}
         >
           <Text style={styles.primaryButtonText}>
@@ -149,7 +228,7 @@ export function SignupScreen({ onShowLogin }: SignupScreenProps) {
           onPress={handleGoogleLogin}
           style={[styles.secondaryButton, { borderColor: primaryAccent }]}
         >
-          <Image source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/120px-Google_%22G%22_logo.svg.png' }} style={styles.googleIcon} />
+          <Image source={googleLogoSource} style={styles.googleIcon} />
           <Text style={styles.secondaryButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
@@ -180,7 +259,6 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     alignItems: 'center',
   },
-
   logoImage: {
     height: 140,
     resizeMode: 'contain',
@@ -217,6 +295,39 @@ const styles = StyleSheet.create({
     fontSize: 15,
     minHeight: 52,
     paddingHorizontal: 16,
+  },
+  passwordContainer: {
+    alignItems: 'center',
+    backgroundColor: '#18181D',
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: 'row',
+    minHeight: 52,
+  },
+  passwordInput: {
+    color: '#FFFFFF',
+    flex: 1,
+    fontSize: 15,
+    minHeight: 52,
+    paddingHorizontal: 16,
+  },
+  eyeButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+  },
+  validationRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    marginTop: -4,
+    paddingHorizontal: 4,
+  },
+  validationText: {
+    fontSize: 13,
+    fontWeight: '600',
+    lineHeight: 18,
   },
   errorText: {
     color: '#FB7185',

@@ -20,13 +20,31 @@ export default defineConfig({
       '.css',
       '.json',
     ],
-    alias: {
-      'expo-av': fileURLToPath(new URL('./src/shims/expo-av.web.ts', import.meta.url)),
-      // Swap lucide-react-native for the web-native version BEFORE
-      // the general react-native alias runs, so react-native-svg
-      // is never loaded during the web build.
-      'lucide-react-native': 'lucide-react',
-      'react-native': 'react-native-web',
-    },
+    alias: [
+      {
+        find: /^react-native\/Libraries\/Utilities\/codegenNativeComponent$/,
+        replacement: fileURLToPath(new URL('./src/shims/codegenNativeComponent.ts', import.meta.url)),
+      },
+      {
+        find: 'expo-av',
+        replacement: fileURLToPath(new URL('./src/shims/expo-av.web.ts', import.meta.url)),
+      },
+      {
+        find: 'expo-linear-gradient',
+        replacement: fileURLToPath(new URL('./src/shims/expo-linear-gradient.web.tsx', import.meta.url)),
+      },
+      {
+        find: 'lucide-react-native',
+        replacement: 'lucide-react',
+      },
+      {
+        find: '@react-native-google-signin/google-signin',
+        replacement: fileURLToPath(new URL('./src/shims/google-signin.web.ts', import.meta.url)),
+      },
+      {
+        find: /^react-native$/,
+        replacement: 'react-native-web',
+      },
+    ],
   },
 });

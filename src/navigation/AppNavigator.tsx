@@ -111,7 +111,7 @@ function MainTabs() {
 export function AppNavigator() {
   const theme = useTheme();
   const user = useAuthStore(state => state.user);
-  const isLoading = useAuthStore(state => state.isLoading);
+  const isInitialLoading = useAuthStore(state => state.isInitialLoading);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges();
@@ -119,7 +119,7 @@ export function AppNavigator() {
     return unsubscribe;
   }, []);
 
-  if (isLoading && !user) {
+  if (isInitialLoading) {
     return (
       <View
         style={[

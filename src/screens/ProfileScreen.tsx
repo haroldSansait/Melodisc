@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -7,12 +8,12 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { Check, LogOut, Palette } from 'lucide-react-native';
+import { Check, LogOut, Palette, Settings as SettingsIcon } from 'lucide-react-native';
 
-import { logout } from '../services/firebase/authService';
+import { logout, deleteAccount } from '../services/firebase/authService';
 import { useAuthStore } from '../store/authStore';
 import { useThemeStore } from '../store/themeStore';
-import { webGlassStyle } from '../theme/glassStyles';
+import { webGlassStyle, webGlassStyleStrong } from '../theme/glassStyles';
 
 const accentPresets = [
   { id: 'light-blur', name: 'Light Blur', color: '#BDEBFF' },
@@ -29,10 +30,31 @@ export function ProfileScreen() {
   const displayName = useThemeStore(state => state.displayName);
   const setPrimaryAccent = useThemeStore(state => state.setPrimaryAccent);
   const setDisplayName = useThemeStore(state => state.setDisplayName);
+  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
+  const setGraphicsQuality = useThemeStore(state => state.setGraphicsQuality);
 
   const currentName = displayName || user?.displayName || '';
   const [nameInput, setNameInput] = useState(currentName);
   const [nameSaved, setNameSaved] = useState(false);
+
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const handleDeleteAccount = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+
+    const result = await deleteAccount();
+
+    if (result.status === 'success') {
+      setIsDeleteModalVisible(false);
+    } else {
+      setDeleteError(result.error ?? 'An error occurred while deleting your account.');
+      setIsDeleting(false);
+    }
+  };
 
   const handleSaveName = () => {
     const trimmed = nameInput.trim();
@@ -54,7 +76,16 @@ export function ProfileScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.title}>Profile</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.title}>Profile</Text>
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setIsSettingsModalVisible(true)}
+            style={[styles.settingsButton, { borderColor: `${primaryAccent}22` }]}
+          >
+            <SettingsIcon color={primaryAccent} size={22} strokeWidth={2.2} />
+          </TouchableOpacity>
+        </View>
 
         {/* User card */}
         <View style={[styles.profileCard, webGlassStyle]}>
@@ -150,6 +181,133 @@ export function ProfileScreen() {
             {isLoading ? 'Signing Out...' : 'Sign Out'}
           </Text>
         </TouchableOpacity>
+
+        {/* Delete Account Button */}
+        <TouchableOpacity
+          activeOpacity={0.82}
+          disabled={isLoading}
+          onPress={() => {
+            setDeleteError(null);
+            setIsDeleteModalVisible(true);
+          }}
+          style={[
+            styles.deleteAccountButton,
+            isLoading && styles.disabledButton,
+          ]}
+        >
+          <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+        </TouchableOpacity>
+
+        {/* Delete Account Confirmation Modal */}
+        <Modal
+          animationType="fade"
+          onRequestClose={() => {
+            if (!isDeleting) setIsDeleteModalVisible(false);
+          }}
+          transparent
+          visible={isDeleteModalVisible}
+        >
+          <View style={styles.modalScrim}>
+            <View style={[styles.deleteModal, webGlassStyleStrong]}>
+              <Text style={styles.modalTitle}>Delete Account?</Text>
+              <Text style={styles.modalWarningText}>
+                Warning: This action is permanent and cannot be undone. All your playlists, settings, and profile details will be permanently deleted from our servers.
+              </Text>
+
+              {deleteError ? (
+                <Text style={styles.modalErrorText}>{deleteError}</Text>
+              ) : null}
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  activeOpacity={0.78}
+                  disabled={isDeleting}
+                  onPress={() => setIsDeleteModalVisible(false)}
+                  style={styles.cancelBtn}
+                >
+                  <Text style={styles.cancelBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  disabled={isDeleting}
+                  onPress={handleDeleteAccount}
+                  style={[styles.deleteBtn, { backgroundColor: '#FB7185' }]}
+                >
+                  <Text style={styles.deleteBtnText}>
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Graphics Settings Modal */}
+        <Modal
+          animationType="fade"
+          onRequestClose={() => setIsSettingsModalVisible(false)}
+          transparent
+          visible={isSettingsModalVisible}
+        >
+          <View style={styles.modalScrim}>
+            <View style={[styles.settingsModal, webGlassStyleStrong]}>
+              <Text style={styles.modalTitle}>Graphics Settings</Text>
+              <Text style={styles.modalSubtitleText}>
+                Adjust the 3D turntable environment quality for performance or visuals on your device.
+              </Text>
+
+              <View style={styles.optionsContainer}>
+                {/* High Quality option */}
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => setGraphicsQuality('high')}
+                  style={[
+                    styles.qualityOption,
+                    graphicsQuality === 'high' && { borderColor: primaryAccent },
+                  ]}
+                >
+                  <View style={styles.optionHeader}>
+                    <Text style={styles.optionTitle}>High Quality</Text>
+                    {graphicsQuality === 'high' ? (
+                      <Check color={primaryAccent} size={18} strokeWidth={3} />
+                    ) : null}
+                  </View>
+                  <Text style={styles.optionDescription}>
+                    Enables real-time shadows, PBR glass refraction, and full room lighting.
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Low Quality option */}
+                <TouchableOpacity
+                  activeOpacity={0.82}
+                  onPress={() => setGraphicsQuality('low')}
+                  style={[
+                    styles.qualityOption,
+                    graphicsQuality === 'low' && { borderColor: primaryAccent },
+                  ]}
+                >
+                  <View style={styles.optionHeader}>
+                    <Text style={styles.optionTitle}>Low Quality (Performance)</Text>
+                    {graphicsQuality === 'low' ? (
+                      <Check color={primaryAccent} size={18} strokeWidth={3} />
+                    ) : null}
+                  </View>
+                  <Text style={styles.optionDescription}>
+                    Disables shadows and clearcoat reflections for butter-smooth rendering and longer battery life.
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.78}
+                onPress={() => setIsSettingsModalVisible(false)}
+                style={[styles.closeSettingsBtn, { backgroundColor: primaryAccent }]}
+              >
+                <Text style={styles.closeSettingsBtnText}>Done</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </View>
   );
@@ -293,6 +451,158 @@ const styles = StyleSheet.create({
   },
   signOutButtonText: {
     fontSize: 15,
+    fontWeight: '900',
+  },
+  deleteAccountButton: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 113, 133, 0.08)',
+    borderRadius: 14,
+    borderColor: 'rgba(251, 113, 133, 0.25)',
+    borderWidth: 1,
+    justifyContent: 'center',
+    minHeight: 52,
+    marginTop: 8,
+  },
+  deleteAccountButtonText: {
+    color: '#FB7185',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  modalScrim: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  deleteModal: {
+    backgroundColor: 'rgba(18, 18, 22, 0.96)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    maxWidth: 400,
+    padding: 24,
+    width: '100%',
+    gap: 16,
+  },
+  modalTitle: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  modalWarningText: {
+    color: '#B3B3B3',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  modalErrorText: {
+    color: '#FB7185',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  cancelBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+  },
+  cancelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  deleteBtn: {
+    alignItems: 'center',
+    borderRadius: 12,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 46,
+  },
+  deleteBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    width: '100%',
+  },
+  settingsButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  settingsModal: {
+    backgroundColor: 'rgba(18, 18, 22, 0.96)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 20,
+    borderWidth: 1,
+    maxWidth: 400,
+    padding: 24,
+    width: '100%',
+    gap: 16,
+  },
+  modalSubtitleText: {
+    color: '#B3B3B3',
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -8,
+  },
+  optionsContainer: {
+    gap: 12,
+    width: '100%',
+  },
+  qualityOption: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 16,
+    gap: 6,
+  },
+  optionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  optionDescription: {
+    color: '#77777D',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  closeSettingsBtn: {
+    alignItems: 'center',
+    borderRadius: 12,
+    justifyContent: 'center',
+    minHeight: 46,
+    width: '100%',
+    marginTop: 8,
+  },
+  closeSettingsBtnText: {
+    color: '#000000',
+    fontSize: 14,
     fontWeight: '900',
   },
 });

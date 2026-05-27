@@ -23,6 +23,7 @@ import { db } from './firebaseConfig';
 export type FirestoreUserProfile = {
   displayName?: string;
   primaryAccent?: string;
+  graphicsQuality?: 'high' | 'low';
 };
 
 export async function saveUserProfile(
@@ -48,6 +49,7 @@ export async function fetchUserProfile(
   return {
     displayName: data.displayName ?? undefined,
     primaryAccent: data.primaryAccent ?? undefined,
+    graphicsQuality: data.graphicsQuality ?? undefined,
   };
 }
 
@@ -192,4 +194,23 @@ export async function fetchTrackStats(
     playCount: d.data().playCount ?? 0,
     lastPlayedAt: d.data().lastPlayedAt,
   }));
+}
+
+export async function deleteFirestoreUserAccount(uid: string): Promise<void> {
+  // 1. Delete all playlists
+  const playlistsCol = collection(db, 'users', uid, 'playlists');
+  const playlistsSnap = await getDocs(playlistsCol);
+  for (const docSnap of playlistsSnap.docs) {
+    await deleteDoc(doc(db, 'users', uid, 'playlists', docSnap.id));
+  }
+
+  // 2. Delete all trackStats
+  const trackStatsCol = collection(db, 'users', uid, 'trackStats');
+  const trackStatsSnap = await getDocs(trackStatsCol);
+  for (const docSnap of trackStatsSnap.docs) {
+    await deleteDoc(doc(db, 'users', uid, 'trackStats', docSnap.id));
+  }
+
+  // 3. Delete parent user profile
+  await deleteDoc(doc(db, 'users', uid));
 }

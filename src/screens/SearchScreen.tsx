@@ -11,6 +11,7 @@ import {
   type GestureResponderEvent,
   type ViewStyle,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Search as SearchIcon } from 'lucide-react-native';
 
 import { artworkAssets } from '../constants/assetRegistry';
@@ -155,17 +156,36 @@ export function SearchScreen({
             <Text style={styles.sectionTitle}>Browse All</Text>
             <View style={styles.genreGrid}>
               {genreTiles.map(tile => {
-                const gradientStyle: ViewStyle = {
-                  background: `linear-gradient(135deg, ${tile.gradient[0]}, ${tile.gradient[1]})`,
-                } as unknown as ViewStyle;
+                if (Platform.OS === 'web') {
+                  const gradientStyle: ViewStyle = {
+                    background: `linear-gradient(135deg, ${tile.gradient[0]}, ${tile.gradient[1]})`,
+                  } as unknown as ViewStyle;
+
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.84}
+                      key={tile.name}
+                      onPress={() => handleGenreTap(tile.name)}
+                      style={[styles.genreTile, gradientStyle]}
+                    >
+                      <Text style={styles.genreTileText}>{tile.name}</Text>
+                    </TouchableOpacity>
+                  );
+                }
 
                 return (
                   <TouchableOpacity
                     activeOpacity={0.84}
                     key={tile.name}
                     onPress={() => handleGenreTap(tile.name)}
-                    style={[styles.genreTile, gradientStyle]}
+                    style={styles.genreTile}
                   >
+                    <LinearGradient
+                      colors={[tile.gradient[0], tile.gradient[1]]}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={StyleSheet.absoluteFill}
+                    />
                     <Text style={styles.genreTileText}>{tile.name}</Text>
                   </TouchableOpacity>
                 );
@@ -299,7 +319,7 @@ const styles = StyleSheet.create({
   genreGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
   },
   genreTile: {
     alignItems: 'flex-start',
@@ -311,6 +331,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: 14,
     width: '48.5%',
+    marginBottom: 10,
   },
   genreTileText: {
     color: '#FFFFFF',

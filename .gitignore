@@ -40,6 +40,8 @@ local.properties
 node_modules/
 npm-debug.log
 yarn-error.log
+.expo/
+.expo-shared/
 
 # fastlane
 #
@@ -74,3 +76,8 @@ dist/
 !.yarn/releases
 !.yarn/sdks
 !.yarn/versions
+
+# Local workspace development artifacts
+melodisc_*.png
+walkthrough.zip
+window.xml

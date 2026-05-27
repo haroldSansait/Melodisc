@@ -1,4 +1,4 @@
-import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import {
   Animated,
   Easing,
@@ -6,12 +6,17 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
-  PanResponder,
 } from 'react-native';
-import { Canvas, useFrame } from '@react-three/fiber/native';
-import { MathUtils, Mesh, Group, PointLight, AdditiveBlending } from 'three';
+import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { OrbitControls, Environment } from '@react-three/drei';
+import { TextureLoader, MathUtils, Mesh, Group, Texture, PointLight, AdditiveBlending } from 'three';
 
-import type { Track } from '../../constants/tracks';
+// @ts-ignore
+import cityBokehUrl from '../../assets/city_bokeh.jpg';
+// @ts-ignore
+import beachSunsetUrl from '../../assets/beach_sunset.jpg';
+
+import { tracks, type Track } from '../../constants/tracks';
 import { usePlayerStore } from '../../store/playerStore';
 import { useThemeStore } from '../../store/themeStore';
 
@@ -21,56 +26,12 @@ type TurntableDeckProps = {
   onVinylTap: () => void;
 };
 
-type SceneErrorBoundaryProps = {
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-};
-
-type SceneErrorBoundaryState = {
-  hasError: boolean;
-};
-
-class SceneErrorBoundary extends React.Component<
-  SceneErrorBoundaryProps,
-  SceneErrorBoundaryState
-> {
-  state: SceneErrorBoundaryState = {
-    hasError: false,
-  };
-
-  static getDerivedStateFromError(): SceneErrorBoundaryState {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: unknown) {
-    console.warn('Native turntable scene render fallback:', error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback ?? null;
-    }
-
-    return this.props.children;
-  }
-}
-
 const TARGET_SPEED = 2.0; // rad/sec (~20 RPM)
 const ROOM_FLOOR_Y = -2.55;
 const TABLE_LEG_HEIGHT = 2.6;
 const TABLE_SURFACE_LOCAL_Y = 1.35;
 const TURNTABLE_CHASSIS_HALF_HEIGHT = 0.25;
 const TURNTABLE_SCALE_MODIFIER = 0.85;
-const LABEL_COLORS = [
-  '#f6d365',
-  '#fda085',
-  '#84fab0',
-  '#8fd3f4',
-  '#a18cd1',
-  '#fbc2eb',
-  '#fddb92',
-  '#bdeeff',
-];
 
 function getTableBaseY(scale: number) {
   return ROOM_FLOOR_Y + (TABLE_LEG_HEIGHT / 2) * scale;
@@ -80,40 +41,16 @@ function getTurntableBaseY(scale: number) {
   return getTableBaseY(scale) + (TABLE_SURFACE_LOCAL_Y * scale) + (TURNTABLE_CHASSIS_HALF_HEIGHT * scale * TURNTABLE_SCALE_MODIFIER);
 }
 
-function getTouchDistance(touches: Array<{ pageX: number; pageY: number }>) {
-  if (touches.length < 2) return 0;
-
-  const [first, second] = touches;
-  return Math.hypot(first.pageX - second.pageX, first.pageY - second.pageY);
-}
-
-function getLabelColor(trackId?: string) {
-  if (!trackId) return LABEL_COLORS[0];
-
-  const hash = Array.from(trackId).reduce(
-    (total, char) => total + char.charCodeAt(0),
-    0,
-  );
-
-  return LABEL_COLORS[hash % LABEL_COLORS.length];
-}
-
-function NativeVinylLabelMaterial({ trackId }: { trackId?: string }) {
-  const labelColor = getLabelColor(trackId);
-  return (
-    <meshStandardMaterial
-      color={labelColor}
-      emissive={labelColor}
-      emissiveIntensity={0.08}
-      metalness={0.08}
-      roughness={0.28}
-    />
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════
 // 3D SUB-COMPONENTS
 // ═══════════════════════════════════════════════════════════════
+
+function VinylLabel({ track }: { track: Track }) {
+  const texture = useLoader(TextureLoader, track.artwork) as Texture;
+  return (
+    <meshStandardMaterial map={texture} roughness={0.15} metalness={0.1} />
+  );
+}
 
 function VinylMesh({ track, isPlaying, isEjecting }: { track: Track | null; isPlaying: boolean; isEjecting: boolean }) {
   const meshRef = useRef<Mesh>(null);
@@ -172,7 +109,13 @@ function VinylMesh({ track, isPlaying, isEjecting }: { track: Track | null; isPl
       {/* Center Label */}
       <mesh position={[0, 0.021, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.45, 64]} />
-        <NativeVinylLabelMaterial trackId={track.id} />
+        {track.artwork ? (
+          <Suspense fallback={<meshStandardMaterial color="#111114" metalness={metalness} roughness={roughness} />}>
+            <VinylLabel track={track} />
+          </Suspense>
+        ) : (
+          <meshStandardMaterial color="#111114" metalness={metalness} roughness={roughness} />
+        )}
       </mesh>
 
       {/* Groove rings */}
@@ -325,7 +268,9 @@ function FlyingVinylMesh({ track, onLanded, scale = 1 }: { track: Track; onLande
       {/* Center Label */}
       <mesh position={[0, 0.021, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.45, 64]} />
-        <NativeVinylLabelMaterial trackId={track.id} />
+        <Suspense fallback={<meshStandardMaterial color="#111114" metalness={metalness} roughness={roughness} />}>
+          <VinylLabel track={track} />
+        </Suspense>
       </mesh>
     </mesh>
   );
@@ -551,25 +496,31 @@ function VinylCabinet({ position, rotation }: { position: [number, number, numbe
 }
 
 function WallPosters() {
+  const posterTracks = useMemo(() => {
+    const shuffledTracks = [...tracks].sort(() => Math.random() - 0.5);
+    return shuffledTracks.slice(0, 3);
+  }, []);
+  const posterTextures = useLoader(TextureLoader, posterTracks.map(track => track.artwork)) as Texture[];
+
   return (
     <group>
-      {/* Poster 1 — back wall, left side */}
+      {/* Poster 1 — back wall, left side (shifted out of window) */}
       <mesh position={[-7.5, 3, -5.92]}>
         <planeGeometry args={[2.0, 2.0]} />
         <meshStandardMaterial color="#111116" metalness={0.1} roughness={0.85} />
       </mesh>
       <mesh position={[-7.5, 3, -5.9]}>
         <planeGeometry args={[1.8, 1.8]} />
-        <meshStandardMaterial color="#bdeeff" emissive="#24384a" emissiveIntensity={0.12} metalness={0.05} roughness={0.7} />
+        <meshStandardMaterial map={posterTextures[0]} color="#ffffff" emissive="#ffffff" emissiveMap={posterTextures[0]} emissiveIntensity={0.04} metalness={0.05} roughness={0.7} />
       </mesh>
-      {/* Poster 2 — back wall, right side */}
+      {/* Poster 2 — back wall, right side (shifted out of window) */}
       <mesh position={[7.35, 3.45, -5.92]}>
         <planeGeometry args={[1.85, 1.85]} />
         <meshStandardMaterial color="#111116" metalness={0.1} roughness={0.85} />
       </mesh>
       <mesh position={[7.35, 3.45, -5.9]}>
         <planeGeometry args={[1.65, 1.65]} />
-        <meshStandardMaterial color="#ffd1dc" emissive="#4a2430" emissiveIntensity={0.1} metalness={0.05} roughness={0.72} />
+        <meshStandardMaterial map={posterTextures[1]} color="#ffffff" emissive="#ffffff" emissiveMap={posterTextures[1]} emissiveIntensity={0.035} metalness={0.05} roughness={0.72} />
       </mesh>
       {/* Poster 3 — left wall */}
       <mesh position={[-8.92, 3, -3]} rotation={[0, Math.PI / 2, 0]}>
@@ -578,7 +529,7 @@ function WallPosters() {
       </mesh>
       <mesh position={[-8.9, 3, -3]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[1.5, 1.5]} />
-        <meshStandardMaterial color="#f7d774" emissive="#3f3210" emissiveIntensity={0.1} metalness={0.05} roughness={0.72} />
+        <meshStandardMaterial map={posterTextures[2]} color="#ffffff" emissive="#ffffff" emissiveMap={posterTextures[2]} emissiveIntensity={0.035} metalness={0.05} roughness={0.72} />
       </mesh>
     </group>
   );
@@ -607,138 +558,73 @@ function Lightning() {
   );
 }
 
-function FallbackWindow({ color }: { color: string }) {
-  return (
-    <group position={[0, 2.5, -6]}>
-      <mesh position={[0, 0, -2]}>
-        <planeGeometry args={[10, 6]} />
-        <meshBasicMaterial color={color} />
-      </mesh>
-      <mesh position={[0, 0, 0]}>
-        <planeGeometry args={[8, 5]} />
-        <meshStandardMaterial
-          color="#c8d8e8"
-          metalness={0.04}
-          opacity={0.28}
-          roughness={0.2}
-          transparent
-        />
-      </mesh>
-    </group>
-  );
-}
+function RainyWindow() {
+  const cityTexture = useLoader(TextureLoader, cityBokehUrl) as Texture;
 
-function RainStreaks() {
-  const streakRefs = useRef<Mesh[]>([]);
-  const streaks = useMemo(
-    () =>
-      Array.from({ length: 26 }, (_, index) => {
-        const column = index % 13;
-        const row = Math.floor(index / 13);
-        return {
-          height: 0.55 + ((index * 17) % 7) * 0.08,
-          speed: 0.42 + ((index * 11) % 9) * 0.045,
-          x: -3.55 + column * 0.6 + (((index * 29) % 10) - 5) * 0.018,
-          y: -2.15 + row * 2.15 + ((index * 13) % 8) * 0.12,
-        };
-      }),
-    [],
-  );
+  const uniformsRef = useRef({ uTime: { value: 0 } });
 
-  useFrame((_, delta) => {
-    streaks.forEach((streak, index) => {
-      const mesh = streakRefs.current[index];
-      if (!mesh) return;
-
-      mesh.position.y -= streak.speed * delta;
-      if (mesh.position.y < -2.35) {
-        mesh.position.y = 2.45;
-      }
-    });
+  useFrame((state) => {
+    uniformsRef.current.uTime.value = state.clock.elapsedTime;
   });
 
-  return (
-    <group position={[0, 0, 0.08]}>
-      {streaks.map((streak, index) => (
-        <mesh
-          key={index}
-          ref={(mesh) => {
-            if (mesh) streakRefs.current[index] = mesh;
-          }}
-          position={[streak.x, streak.y, 0]}
-          rotation={[0, 0, -0.08]}
-        >
-          <planeGeometry args={[0.035, streak.height]} />
-          <meshBasicMaterial
-            color="#d6f0ff"
-            opacity={0.26}
-            transparent
-          />
-        </mesh>
-      ))}
-    </group>
-  );
-}
+  const onBeforeCompile = useCallback((shader: any) => {
+    shader.uniforms.uTime = uniformsRef.current.uTime;
+    shader.fragmentShader = `
+      uniform float uTime;
+      ${shader.fragmentShader}
+    `;
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <normal_fragment_maps>',
+      `
+      #include <normal_fragment_maps>
+      float rainTime = uTime * 1.65;
+      vec2 rainUv = vUv;
+      rainUv.y += rainTime;
 
-function RainyWindow() {
-  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
-  const isHigh = graphicsQuality === 'high';
+      vec2 streakGrid = rainUv * vec2(34.0, 9.0);
+      vec2 streakId = floor(streakGrid);
+      vec2 streakCell = fract(streakGrid);
+      float streakRandom = fract(sin(dot(streakId, vec2(12.9898, 78.233))) * 43758.5453);
+      float streakMask = smoothstep(0.035, 0.0, abs(streakCell.x - 0.5 + (streakRandom - 0.5) * 0.24));
+      float streakTail = smoothstep(1.0, 0.18, streakCell.y) * smoothstep(0.0, 0.22, streakCell.y);
+      float streak = streakMask * streakTail * step(0.42, streakRandom);
+
+      vec2 beadGrid = (vUv * vec2(24.0, 18.0)) + vec2(0.0, rainTime * 1.35);
+      vec2 beadId = floor(beadGrid);
+      vec2 beadCell = fract(beadGrid) - 0.5;
+      float beadRandom = fract(sin(dot(beadId, vec2(41.17, 19.31))) * 24634.6345);
+      float bead = smoothstep(0.22, 0.0, length(beadCell)) * step(0.62, beadRandom);
+
+      vec2 rainNormal = normalize(vec2(streakCell.x - 0.5, -0.85)) * streak * 0.45;
+      rainNormal += normalize(beadCell + 0.0001) * bead * 0.34;
+      normal = normalize(normal + vec3(rainNormal.x, rainNormal.y, streak + bead * 0.3));
+      `
+    );
+  }, []);
 
   return (
     <group position={[0, 2.5, -6]}>
-      {/* 3D Sky backdrop — placed just behind the glass for proper depth parallax */}
-      {/* Upper sky: deep dark navy */}
-      <mesh position={[0, 1.25, -1.62]}>
-        <planeGeometry args={[10, 2.5]} />
-        <meshBasicMaterial color="#0a1628" />
+      {/* The City Background - Resized to prevent overshooting */}
+      <mesh position={[0, 0, -2]}>
+        <planeGeometry args={[10, 6]} />
+        <meshBasicMaterial map={cityTexture} color="#ffffff" />
       </mesh>
-      {/* Lower sky: city glow horizon with warm amber tint */}
-      <mesh position={[0, -1.15, -1.64]}>
-        <planeGeometry args={[10, 2.3]} />
-        <meshBasicMaterial color="#1a2844" />
-      </mesh>
-      {/* Faint warm city light strip at the horizon line */}
-      <mesh position={[0, -0.05, -1.52]}>
-        <planeGeometry args={[10, 0.28]} />
-        <meshBasicMaterial color="#2a3855" />
-      </mesh>
-      {/* Scattered bokeh-like city light dots (small glowing spheres) */}
-      {[
-        [-2.5, -0.8, -1.42], [1.8, -0.5, -1.4], [-0.5, -1.0, -1.38],
-        [3.0, -0.9, -1.43], [-3.2, -0.6, -1.39], [0.8, -1.2, -1.41],
-        [-1.5, -0.3, -1.37], [2.5, -1.1, -1.44], [-2.0, -1.3, -1.36],
-      ].map((pos, i) => (
-        <mesh key={`bokeh-${i}`} position={pos as [number, number, number]} scale={[0.08 + (i % 3) * 0.03, 0.08 + (i % 3) * 0.03, 0.01]}>
-          <sphereGeometry args={[1, 6, 6]} />
-          <meshBasicMaterial color={i % 3 === 0 ? '#ffc966' : i % 3 === 1 ? '#ff9944' : '#66aaff'} />
-        </mesh>
-      ))}
 
       <Lightning />
-      <RainStreaks />
 
       {/* The Glass Pane */}
       <mesh position={[0, 0, 0]}>
         <planeGeometry args={[8, 5]} />
-        {isHigh ? (
-          <meshPhysicalMaterial
-            transparent
-            opacity={0.45}
-            roughness={0.045}
-            color="#c8e0e8"
-            metalness={0.02}
-            clearcoat={1}
-            clearcoatRoughness={0.08}
-          />
-        ) : (
-          <meshStandardMaterial
-            transparent
-            opacity={0.45}
-            roughness={0.045}
-            color="#c8e0e8"
-            metalness={0.02}
-          />
-        )}
+        <meshPhysicalMaterial
+          transparent
+          opacity={0.45}
+          roughness={0.045}
+          color="#c8e0e8"
+          metalness={0.02}
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+          onBeforeCompile={onBeforeCompile}
+        />
       </mesh>
 
       {/* Window Frame Crossbars */}
@@ -772,67 +658,28 @@ function RainyWindow() {
 }
 
 function BeachWindow() {
-  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
-  const isHigh = graphicsQuality === 'high';
+  const beachTexture = useLoader(TextureLoader, beachSunsetUrl) as Texture;
 
   return (
     <group position={[0, 2.5, -6]}>
-      {/* 3D Sunset sky backdrop — layered planes for warm gradient depth */}
-      {/* Upper sky: warm deep orange */}
-      <mesh position={[0, 1.65, -1.64]}>
-        <planeGeometry args={[12, 1.7]} />
-        <meshBasicMaterial color="#c85a28" />
-      </mesh>
-      {/* Mid sky: peachy sunset glow */}
-      <mesh position={[0, 0.15, -1.66]}>
-        <planeGeometry args={[12, 1.3]} />
-        <meshBasicMaterial color="#e8945a" />
-      </mesh>
-      {/* Lower sky: warm golden horizon */}
-      <mesh position={[0, -1.35, -1.68]}>
-        <planeGeometry args={[12, 1.7]} />
-        <meshBasicMaterial color="#f4b183" />
-      </mesh>
-      {/* Cloud wisps — flat elongated planes at varying depths */}
-      <mesh position={[-1.5, 1.2, -1.2]} rotation={[0, 0, 0.05]}>
-        <planeGeometry args={[3.5, 0.4]} />
-        <meshBasicMaterial color="#f0c8a0" transparent opacity={0.7} depthWrite={false} />
-      </mesh>
-      <mesh position={[2.0, 0.8, -1.0]} rotation={[0, 0, -0.03]}>
-        <planeGeometry args={[2.8, 0.35]} />
-        <meshBasicMaterial color="#e8b890" transparent opacity={0.6} depthWrite={false} />
-      </mesh>
-      <mesh position={[-0.5, 1.6, -1.3]} rotation={[0, 0, 0.02]}>
-        <planeGeometry args={[4.0, 0.3]} />
-        <meshBasicMaterial color="#f5d0a8" transparent opacity={0.5} depthWrite={false} />
-      </mesh>
-      <mesh position={[1.0, 0.4, -1.1]} rotation={[0, 0, -0.04]}>
-        <planeGeometry args={[3.2, 0.25]} />
-        <meshBasicMaterial color="#eaaf80" transparent opacity={0.55} depthWrite={false} />
+      {/* The Beach Background */}
+      <mesh position={[0, -1.5, -5]}>
+        <planeGeometry args={[36, 18]} />
+        <meshBasicMaterial map={beachTexture} color="#ffffff" />
       </mesh>
 
-      {/* The Glass Pane */}
+      {/* The Glass Pane (massive unobstructed picture window) */}
       <mesh position={[0, 0, 0]}>
         <planeGeometry args={[8, 5]} />
-        {isHigh ? (
-          <meshPhysicalMaterial
-            transparent
-            opacity={0.45}
-            roughness={0.045}
-            color="#ffdab9"
-            metalness={0.02}
-            clearcoat={1}
-            clearcoatRoughness={0.08}
-          />
-        ) : (
-          <meshStandardMaterial
-            transparent
-            opacity={0.45}
-            roughness={0.045}
-            color="#ffdab9"
-            metalness={0.02}
-          />
-        )}
+        <meshPhysicalMaterial
+          transparent
+          opacity={0.45}
+          roughness={0.045}
+          color="#ffdab9"
+          metalness={0.02}
+          clearcoat={1}
+          clearcoatRoughness={0.08}
+        />
       </mesh>
 
       {/* Outer Frame */}
@@ -890,21 +737,21 @@ function FurnitureDetails() {
   );
 }
 
-function DeskLamp({ scale = 1, positionX = 2, positionZ = -1, isHighQuality = false }: { scale?: number, positionX?: number, positionZ?: number, isHighQuality?: boolean }) {
+function DeskLamp({ scale = 1, positionX = 2, positionZ = -1 }: { scale?: number, positionX?: number, positionZ?: number }) {
   return (
     <group position={[positionX * scale, getTableBaseY(scale) + (TABLE_SURFACE_LOCAL_Y + 0.025) * scale, positionZ * scale]} scale={[scale, scale, scale]}>
       {/* Base */}
-      <mesh castShadow={isHighQuality}>
+      <mesh castShadow>
         <cylinderGeometry args={[0.3, 0.3, 0.05, 16]} />
         <meshStandardMaterial color="#111" roughness={0.8} />
       </mesh>
       {/* Stand */}
-      <mesh position={[0, 0.4, 0]} castShadow={isHighQuality}>
+      <mesh position={[0, 0.4, 0]} castShadow>
         <cylinderGeometry args={[0.03, 0.03, 0.8, 8]} />
         <meshStandardMaterial color="#222" metalness={0.8} />
       </mesh>
       {/* Head */}
-      <mesh position={[0, 0.8, 0.1]} rotation={[0.4, 0, 0]} castShadow={isHighQuality}>
+      <mesh position={[0, 0.8, 0.1]} rotation={[0.4, 0, 0]} castShadow>
         <coneGeometry args={[0.2, 0.3, 16, 1, true]} />
         <meshStandardMaterial color="#111" roughness={0.8} side={2} />
       </mesh>
@@ -913,24 +760,24 @@ function DeskLamp({ scale = 1, positionX = 2, positionZ = -1, isHighQuality = fa
         <sphereGeometry args={[0.08, 16, 16]} />
         <meshStandardMaterial emissive="#ffb13b" emissiveIntensity={10.5} color="#fff1cf" />
       </mesh>
-      {/* Warm Point Light — shadow only on High quality */}
-      <pointLight position={[0, 0.7, 0.2]} intensity={6.2} color="#ffb13b" distance={14} decay={1.3} castShadow={isHighQuality} shadow-bias={-0.002} />
+      {/* Warm Point Light */}
+      <pointLight position={[0, 0.7, 0.2]} intensity={6.2} color="#ffb13b" distance={14} decay={1.3} castShadow shadow-bias={-0.002} />
     </group>
   );
 }
 
-function LargeFloorLamp({ scale = 1, isHighQuality = false }: { scale?: number, isHighQuality?: boolean }) {
+function LargeFloorLamp({ scale = 1 }: { scale?: number }) {
   return (
     <group position={[6.2 * scale, ROOM_FLOOR_Y + 0.025 * scale, 1.8 * scale]} scale={[scale, scale, scale]}>
-      <mesh castShadow={isHighQuality} receiveShadow>
+      <mesh castShadow receiveShadow>
         <cylinderGeometry args={[0.45, 0.55, 0.05, 24]} />
         <meshStandardMaterial color="#111" roughness={0.72} metalness={0.25} />
       </mesh>
-      <mesh position={[0, 1.35, 0]} castShadow={isHighQuality}>
+      <mesh position={[0, 1.35, 0]} castShadow>
         <cylinderGeometry args={[0.045, 0.06, 2.7, 12]} />
         <meshStandardMaterial color="#222" metalness={0.8} roughness={0.35} />
       </mesh>
-      <mesh position={[0, 2.75, 0.04]} rotation={[0.18, 0, 0]} castShadow={isHighQuality}>
+      <mesh position={[0, 2.75, 0.04]} rotation={[0.18, 0, 0]} castShadow>
         <coneGeometry args={[0.42, 0.7, 24, 1, true]} />
         <meshStandardMaterial color="#111" roughness={0.8} side={2} />
       </mesh>
@@ -938,28 +785,23 @@ function LargeFloorLamp({ scale = 1, isHighQuality = false }: { scale?: number, 
         <sphereGeometry args={[0.13, 20, 20]} />
         <meshStandardMaterial emissive="#ffb13b" emissiveIntensity={10.5} color="#fff1cf" />
       </mesh>
-      {/* Floor lamp point light — shadow only on High quality */}
-      <pointLight position={[0, 2.5, 0.2]} intensity={6.2} color="#ffb13b" distance={14} decay={1.3} castShadow={isHighQuality} shadow-bias={-0.002} />
+      <pointLight position={[0, 2.5, 0.2]} intensity={6.2} color="#ffb13b" distance={14} decay={1.3} castShadow shadow-bias={-0.002} />
     </group>
   );
 }
 
 function DefaultRoom({ scale = 1 }: { scale?: number }) {
-  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
-  const isHigh = graphicsQuality === 'high';
-
   return (
     <>
-      {/* Boosted ambient and directional intensities to compensate for no Drei Environment Preset */}
-      <ambientLight intensity={0.28} color="#1a2536" />
-
+      <ambientLight intensity={0.1} color="#1a2536" />
+      {/* ── Exterior Coolness (The Window Cast) ── */}
       <directionalLight
         position={[0, 4, -8]}
-        intensity={2.4}
+        intensity={1.8}
         color="#64b5f6"
-        castShadow={isHigh}
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-camera-far={30}
         shadow-camera-left={-10}
         shadow-camera-right={10}
@@ -968,43 +810,32 @@ function DefaultRoom({ scale = 1 }: { scale?: number }) {
         shadow-bias={-0.001}
       />
 
-      <DeskLamp scale={scale} positionX={2} positionZ={-1} isHighQuality={isHigh} />
-      <DeskLamp scale={scale} positionX={-2} positionZ={-1} isHighQuality={isHigh} />
-      <LargeFloorLamp scale={scale} isHighQuality={isHigh} />
+      <DeskLamp scale={scale} positionX={2} positionZ={-1} />
+      <DeskLamp scale={scale} positionX={-2} positionZ={-1} />
+      <LargeFloorLamp scale={scale} />
 
       {/* ── Environment ── */}
       <BedroomWalls />
-      <SceneErrorBoundary fallback={<FallbackWindow color="#101827" />}>
-        <RainyWindow />
-      </SceneErrorBoundary>
+      <RainyWindow />
       <FurnitureDetails />
       <DJTable scale={scale} />
       <CozyCouch />
-      <SceneErrorBoundary>
-        <WallPosters />
-      </SceneErrorBoundary>
+      <WallPosters />
       <VinylCabinet position={[-8, -2.55, 1.5]} rotation={[0, Math.PI / 2, 0]} />
     </>
   );
 }
 
 function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
-  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
-  const isHigh = graphicsQuality === 'high';
-
   return (
     <>
-      {/* Boosted ambient and directional intensities to compensate for no Drei Environment Preset */}
-      <ambientLight intensity={0.34} color="#36251a" />
-
-      {/* Main back light — warm sunlight from behind/above the window */}
+      <ambientLight intensity={0.1} color="#36251a" />
       <directionalLight
         position={[0, 4, -8]}
-        intensity={2.8}
+        intensity={2.2}
         color="#ff9100"
-        castShadow={isHigh}
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
+        castShadow
+        shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.001}
         shadow-camera-far={30}
         shadow-camera-left={-10}
@@ -1013,16 +844,8 @@ function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
         shadow-camera-bottom={-10}
       />
 
-      {/* Front fill light — simulates Environment IBL bounce/fill on camera-facing surfaces.
-          On web, Drei's Environment preset provides this automatically. On native we add it
-          explicitly so the room matches the web brightness. */}
-      <directionalLight
-        position={[0, 6, 10]}
-        intensity={1.4}
-        color="#ffcc80"
-      />
-
       {/* Interior Structural Swap */}
+      {/* Walls & Flooring */}
       <group>
         {/* Back Wall - left pane */}
         <mesh position={[-6.5, 5, -6]} receiveShadow>
@@ -1062,11 +885,8 @@ function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
         </mesh>
       </group>
 
-      <SceneErrorBoundary fallback={<FallbackWindow color="#f0b06a" />}>
-        <BeachWindow />
-      </SceneErrorBoundary>
-
-
+      <BeachWindow />
+      {/* Minimalist Modern Layout */}
       {/* Media Console */}
       <group position={[0, getTableBaseY(scale), 0]} scale={[scale, scale, scale]}>
         <mesh position={[0, 1.2, 0]} receiveShadow castShadow>
@@ -1085,74 +905,6 @@ function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
             </mesh>
           </React.Fragment>
         ))}
-
-        {/* Aesthetic tabletop decorations to fill empty spaces */}
-        {/* Left Side: Minimalist Ceramic Coffee Mug & Wooden Coaster */}
-        <mesh position={[-2.25, 1.4075, 0.4]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.26, 0.26, 0.015, 24]} />
-          <meshStandardMaterial color="#b5825c" roughness={0.95} />
-        </mesh>
-        <mesh position={[-2.25, 1.545, 0.4]} castShadow>
-          <cylinderGeometry args={[0.18, 0.18, 0.26, 24, 1, true]} />
-          <meshStandardMaterial color="#d4a373" roughness={0.6} metalness={0.1} />
-        </mesh>
-        <mesh position={[-2.25, 1.68, 0.4]}>
-          <torusGeometry args={[0.18, 0.018, 8, 24]} />
-          <meshStandardMaterial color="#d4a373" roughness={0.58} metalness={0.1} />
-        </mesh>
-        <mesh position={[-2.25, 1.655, 0.4]}>
-          <cylinderGeometry args={[0.165, 0.165, 0.02, 16]} />
-          <meshStandardMaterial color="#4a2c11" roughness={0.15} metalness={0.05} />
-        </mesh>
-
-        {/* Right Side Front: Premium Hexagonal Succulent Planter Pot */}
-        <mesh position={[2.25, 1.56, 0.4]} castShadow>
-          <cylinderGeometry args={[0.22, 0.18, 0.32, 6, 1, true]} />
-          <meshStandardMaterial color="#faf9f6" roughness={0.65} metalness={0.05} />
-        </mesh>
-        <mesh position={[2.25, 1.725, 0.4]}>
-          <torusGeometry args={[0.2, 0.018, 6, 6]} />
-          <meshStandardMaterial color="#faf9f6" roughness={0.62} metalness={0.05} />
-        </mesh>
-        <mesh position={[2.25, 1.70, 0.4]}>
-          <cylinderGeometry args={[0.2, 0.2, 0.02, 12]} />
-          <meshStandardMaterial color="#3e2723" roughness={0.95} />
-        </mesh>
-        {/* Succulent sagy-green leaves clustered at the center */}
-        <mesh position={[2.25, 1.73, 0.4]} scale={[0.12, 0.12, 0.12]} castShadow>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#8fbc8f" roughness={0.9} />
-        </mesh>
-        <mesh position={[2.18, 1.75, 0.44]} scale={[0.1, 0.13, 0.1]} castShadow>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#8fbc8f" roughness={0.9} />
-        </mesh>
-        <mesh position={[2.32, 1.75, 0.36]} scale={[0.1, 0.11, 0.13]} castShadow>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#8fbc8f" roughness={0.9} />
-        </mesh>
-        <mesh position={[2.29, 1.77, 0.45]} scale={[0.08, 0.14, 0.08]} castShadow>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#8fbc8f" roughness={0.9} />
-        </mesh>
-        <mesh position={[2.2, 1.76, 0.35]} scale={[0.09, 0.1, 0.11]} castShadow>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#8fbc8f" roughness={0.9} />
-        </mesh>
-        <mesh position={[2.25, 1.78, 0.4]} scale={[0.06, 0.06, 0.06]}>
-          <sphereGeometry args={[1, 8, 8]} />
-          <meshStandardMaterial color="#e9967a" roughness={0.8} />
-        </mesh>
-
-        {/* Right Side Back: Two leaning Vinyl record sleeves */}
-        <mesh position={[2.35, 1.815, -0.45]} rotation={[0, -0.35, 0.15]} castShadow>
-          <boxGeometry args={[0.7, 0.7, 0.03]} />
-          <meshStandardMaterial color="#e5989b" roughness={0.52} metalness={0.08} />
-        </mesh>
-        <mesh position={[2.48, 1.815, -0.55]} rotation={[0, -0.32, 0.18]} castShadow>
-          <boxGeometry args={[0.7, 0.7, 0.03]} />
-          <meshStandardMaterial color="#2d3748" roughness={0.65} metalness={0.1} />
-        </mesh>
       </group>
 
       {/* Studio Monitors */}
@@ -1220,95 +972,39 @@ function WarmVibeRoom({ scale = 1 }: { scale?: number }) {
       {/* Re-added Default Room Furniture */}
       <CozyCouch scale={1.2} />
       <FurnitureDetails />
-      <SceneErrorBoundary>
-        <WallPosters />
-      </SceneErrorBoundary>
+      <WallPosters />
       <VinylCabinet position={[-8, -2.55, 1.5]} rotation={[0, Math.PI / 2, 0]} />
     </>
   );
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CUSTOM GESTURE CAMERA CONTROLLER (OrbitControls Replacement)
-// ═══════════════════════════════════════════════════════════════
-
-function CameraController({
-  targetX,
-  targetY,
-  targetDistance,
-  isMobile,
-  scale,
-}: {
-  targetX: React.MutableRefObject<number>;
-  targetY: React.MutableRefObject<number>;
-  targetDistance: React.MutableRefObject<number>;
-  isMobile: boolean;
-  scale: number;
-}) {
-  const currentX = useRef(0);
-  const currentY = useRef(Math.PI / 2.5);
-  const currentDistance = useRef(targetDistance.current);
-
-  useFrame((state) => {
-    // Smoothly damp the angles toward targets (dampening factor of 0.08)
-    currentX.current = MathUtils.lerp(currentX.current, targetX.current, 0.08);
-    currentY.current = MathUtils.lerp(currentY.current, targetY.current, 0.08);
-    currentDistance.current = MathUtils.lerp(
-      currentDistance.current,
-      targetDistance.current,
-      0.08,
-    );
-
-    const radius = currentDistance.current;
-    const theta = currentX.current;
-    const phi = currentY.current;
-
-    const targetYCenter = getTurntableBaseY(scale);
-
-    // Convert Spherical coordinates to Cartesian
-    state.camera.position.x = radius * Math.sin(phi) * Math.sin(theta);
-    state.camera.position.y = targetYCenter + radius * Math.cos(phi);
-    state.camera.position.z = radius * Math.sin(phi) * Math.cos(theta);
-    state.camera.lookAt(0, targetYCenter, 0);
-  });
-
-  return null;
-}
-
-// ═══════════════════════════════════════════════════════════════
 // MAIN SCENE COMPOSER
 // ═══════════════════════════════════════════════════════════════
 
-function TurntableScene({
-  dockedTrack,
-  flyingTrack,
-  isPlaying,
-  isEjecting,
-  onLanded,
-  isMobile,
-  scale,
-  targetRotationX,
-  targetRotationY,
-  targetCameraDistance,
-}: {
+function TurntableScene({ dockedTrack, flyingTrack, isPlaying, isEjecting, onLanded, isMobile }: {
   dockedTrack: Track | null;
   flyingTrack: Track | null;
   isPlaying: boolean;
   isEjecting: boolean;
   onLanded: () => void;
   isMobile: boolean;
-  scale: number;
-  targetRotationX: React.MutableRefObject<number>;
-  targetRotationY: React.MutableRefObject<number>;
-  targetCameraDistance: React.MutableRefObject<number>;
 }) {
   const environmentTheme = useThemeStore(state => state.environmentTheme);
+  const scale = isMobile ? 0.7 : 1.0;
 
   return (
     <>
+      {/* ── Environment Reflection Map for Metals & Skybox ── */}
+      {environmentTheme === 'warm_vibe' ? (
+        <Environment preset="sunset" background={false} environmentIntensity={0.3} />
+      ) : (
+        <Environment preset="night" environmentIntensity={0.2} />
+      )}
+
       {environmentTheme === 'warm_vibe' ? <WarmVibeRoom scale={scale} /> : <DefaultRoom scale={scale} />}
 
-      {/* ── Turntable Unit ── */}
+      {/* ── Turntable Unit (sits on the table) ── */}
       <group position={[0, getTurntableBaseY(scale), 0]} scale={[scale * TURNTABLE_SCALE_MODIFIER, scale * TURNTABLE_SCALE_MODIFIER, scale * TURNTABLE_SCALE_MODIFIER]}>
         {/* Volumetric Chassis Body */}
         <mesh position={[0, 0, 0]} receiveShadow castShadow>
@@ -1342,16 +1038,23 @@ function TurntableScene({
         <DustLid />
       </group>
 
-      {/* ── Flying Vinyl ── */}
+      {/* ── Flying Vinyl (arrives from above the scene) ── */}
       {flyingTrack && <FlyingVinylMesh track={flyingTrack} onLanded={onLanded} scale={scale} />}
 
-      {/* Custom Frame-driven Camera Damping Control */}
-      <CameraController
-        targetX={targetRotationX}
-        targetY={targetRotationY}
-        targetDistance={targetCameraDistance}
-        isMobile={isMobile}
-        scale={scale}
+      {/* ── Camera Controls ── */}
+      <OrbitControls
+        enableZoom={true}
+        minDistance={isMobile ? 3.5 : 4.5}
+        maxDistance={isMobile ? 10.5 : 8.5}
+        enableRotate={true}
+        minPolarAngle={Math.PI / 2.85}
+        maxPolarAngle={Math.PI / 2.15}
+        minAzimuthAngle={isMobile ? -Math.PI / 4.5 : -Math.PI / 6}
+        maxAzimuthAngle={isMobile ? Math.PI / 4.5 : Math.PI / 6}
+        enablePan={true}
+        panSpeed={0.65}
+        enableDamping
+        dampingFactor={0.08}
       />
     </>
   );
@@ -1366,24 +1069,10 @@ export function TurntableDeck({
   onDockComplete,
   onVinylTap,
 }: TurntableDeckProps) {
-  const graphicsQuality = useThemeStore(state => state.graphicsQuality);
   const isPlaying = usePlayerStore(state => state.isPlaying);
   const currentTrack = usePlayerStore(state => state.currentTrack);
-  const { width, height: screenHeight } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const isMobile = width < 768;
-  const scale = isMobile ? 0.7 : 1.0;
-  const gestureWidth = Math.max(width, 1);
-  const gestureHeight = Math.max(screenHeight, 1);
-  const gestureMetricsRef = useRef({
-    height: gestureHeight,
-    isMobile,
-    width: gestureWidth,
-  });
-  gestureMetricsRef.current = {
-    height: gestureHeight,
-    isMobile,
-    width: gestureWidth,
-  };
 
   const [dockedTrack, setDockedTrack] = useState<Track | null>(null);
   const [flyingTrack, setFlyingTrack] = useState<Track | null>(null);
@@ -1393,84 +1082,6 @@ export function TurntableDeck({
   const pendingDockRef = useRef<Track | null>(null);
   const canvasOpacity = useRef(new Animated.Value(1)).current;
   const hasFadedCanvasRef = useRef(false);
-
-  // Spherical rotation bounds & current targets
-  const baseCameraDistance = isMobile ? 10.5 : 8.5;
-  const targetRotationX = useRef(0);
-  const targetRotationY = useRef(Math.PI / 2.5);
-  const targetCameraDistance = useRef(baseCameraDistance);
-  const initialAngles = useRef({ x: 0, y: Math.PI / 2.5 });
-  const initialPinchDistance = useRef(0);
-  const initialCameraDistance = useRef(baseCameraDistance);
-
-  useEffect(() => {
-    targetCameraDistance.current = baseCameraDistance;
-    initialCameraDistance.current = baseCameraDistance;
-  }, [baseCameraDistance]);
-
-  // PanResponder to intercept swipes and translate to horizontal & vertical camera orbit angles
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: event =>
-        event.nativeEvent.touches.length >= 2,
-      onMoveShouldSetPanResponder: (event, gestureState) =>
-        event.nativeEvent.touches.length >= 2 ||
-        Math.abs(gestureState.dx) > 3 ||
-        Math.abs(gestureState.dy) > 3,
-      onPanResponderGrant: event => {
-        initialAngles.current.x = targetRotationX.current;
-        initialAngles.current.y = targetRotationY.current;
-        initialCameraDistance.current = targetCameraDistance.current;
-        initialPinchDistance.current = getTouchDistance(
-          event.nativeEvent.touches as Array<{ pageX: number; pageY: number }>,
-        );
-      },
-      onPanResponderMove: (event, gestureState) => {
-        const metrics = gestureMetricsRef.current;
-        const touches = event.nativeEvent.touches as Array<{
-          pageX: number;
-          pageY: number;
-        }>;
-
-        if (touches.length >= 2) {
-          const pinchDistance = getTouchDistance(touches);
-          if (initialPinchDistance.current <= 0) {
-            initialPinchDistance.current = pinchDistance;
-            initialCameraDistance.current = targetCameraDistance.current;
-          }
-
-          if (pinchDistance > 0) {
-            const pinchRatio = pinchDistance / initialPinchDistance.current;
-            const minDistance = metrics.isMobile ? 9.5 : 7.8;
-            const maxDistance = metrics.isMobile ? 11.4 : 9.2;
-
-            targetCameraDistance.current = MathUtils.clamp(
-              initialCameraDistance.current / pinchRatio,
-              minDistance,
-              maxDistance,
-            );
-          }
-          return;
-        }
-
-        // Adjust horizontal angle (theta) and vertical angle (phi) based on dragging
-        const deltaX = (gestureState.dx / metrics.width) * Math.PI * 0.9;
-        const deltaY = (gestureState.dy / metrics.height) * Math.PI * 0.45;
-
-        // Standard OrbitControls bounds and constraints matching the web platform
-        targetRotationX.current = MathUtils.clamp(
-          initialAngles.current.x - deltaX,
-          metrics.isMobile ? -Math.PI / 4.5 : -Math.PI / 6,
-          metrics.isMobile ? Math.PI / 4.5 : Math.PI / 6
-        );
-        targetRotationY.current = MathUtils.clamp(
-          initialAngles.current.y + deltaY,
-          Math.PI / 2.85,
-          Math.PI / 2.15
-        );
-      },
-    })
-  ).current;
 
   useEffect(() => {
     if (!canvasCreated || hasFadedCanvasRef.current) {
@@ -1530,6 +1141,7 @@ export function TurntableDeck({
     }
 
     if (dockedTrack) {
+      // Eject the current disc first, then fly in the new one
       pendingDockRef.current = dockingTrack;
       setIsEjecting(true);
       setTimeout(() => {
@@ -1543,13 +1155,17 @@ export function TurntableDeck({
       return;
     }
 
+    // No disc on the platter — fly in directly
     setFlyingTrack(dockingTrack);
   }, [dockingTrack, dockedTrack, flyingTrack]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // When the user tapped a track from the UI (dockingTrack is set),
+    // the dockingTrack effect owns the state machine. Don't interfere.
     if (dockingTrack) return;
 
     if (!currentTrack) {
+      // Don't nuke state if a docking operation is already in-flight
       if (!flyingTrack && !pendingDockRef.current && !dockingTrack) {
         setDockedTrack(null);
         setFlyingTrack(null);
@@ -1589,19 +1205,27 @@ export function TurntableDeck({
     };
   }, [currentTrack, dockedTrack, flyingTrack]);
 
+  // Auto-advance handler: when audio finishes, the store sets isAutoAdvancing=true.
+  // We intercept it here to run the eject→fly-in animation before calling nextTrack().
   const isAutoAdvancing = usePlayerStore(state => state.isAutoAdvancing);
 
   useEffect(() => {
     if (!isAutoAdvancing || !dockedTrack) return;
 
+    // 1. Clear the flag immediately so this doesn't re-fire
     usePlayerStore.setState({ isAutoAdvancing: false });
+
+    // 2. Trigger eject animation on the current disc
     setIsEjecting(true);
 
     setTimeout(() => {
       setIsEjecting(false);
       setDockedTrack(null);
+
+      // 3. Advance to next track in the store (updates audio + recents)
       usePlayerStore.getState().nextTrack();
 
+      // 4. After a brief pause, fly in the new disc
       setTimeout(() => {
         const newTrack = usePlayerStore.getState().currentTrack;
         if (newTrack) {
@@ -1612,12 +1236,13 @@ export function TurntableDeck({
   }, [isAutoAdvancing]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <View style={styles.deckContainer} {...panResponder.panHandlers}>
+    <View style={styles.deckContainer}>
       <Animated.View style={[styles.canvasFade, { opacity: canvasOpacity }]}>
         <Canvas
           gl={{ alpha: true }}
-          shadows={graphicsQuality === 'high'}
-          camera={{ position: isMobile ? [0, 5.8, 10.2] : [0, 5.0, 8.8], fov: 45 }}
+          shadows
+          camera={{ position: isMobile ? [0, 6, 11] : [0, 5, 9], fov: isMobile ? 50 : 45 }}
+          dpr={[1, 2]}
           onCreated={() => setCanvasCreated(true)}
           style={styles.canvas}
         >
@@ -1629,16 +1254,12 @@ export function TurntableDeck({
               isEjecting={isEjecting}
               onLanded={handleLanded}
               isMobile={isMobile}
-              scale={scale}
-              targetRotationX={targetRotationX}
-              targetRotationY={targetRotationY}
-              targetCameraDistance={targetCameraDistance}
             />
           </Suspense>
         </Canvas>
       </Animated.View>
 
-      {/* Invisible touch target overlays for navigation/tap actions */}
+      {/* Invisible touch target to open PlayerScreen when vinyl is tapped */}
       {dockedTrack && !flyingTrack && !isEjecting && (
         <TouchableOpacity
           activeOpacity={1}
@@ -1659,7 +1280,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 5,
     flex: 1,
-    overflow: 'hidden',
     width: '100%',
   },
   canvas: {

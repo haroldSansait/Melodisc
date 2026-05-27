@@ -16,9 +16,11 @@ export type AuthUser = User | CachedAuthContext;
 type AuthState = {
   user: AuthUser | null;
   isLoading: boolean;
+  isInitialLoading: boolean;
   authError: string | null;
   setUser: (user: AuthUser | null) => void;
   setLoading: (isLoading: boolean) => void;
+  setInitialLoading: (isInitialLoading: boolean) => void;
   setAuthError: (authError: string | null) => void;
 };
 
@@ -117,6 +119,7 @@ export function clearCachedAuthContext() {
 export const useAuthStore = create<AuthState>(set => ({
   user: readCachedAuthContext(),
   isLoading: true,
+  isInitialLoading: true,
   authError: null,
   setUser: user => {
     if (user) {
@@ -138,5 +141,6 @@ if (typeof window !== 'undefined' && typeof window.addEventListener === 'functio
 }
   },
   setLoading: isLoading => set({ isLoading }),
+  setInitialLoading: isInitialLoading => set({ isInitialLoading }),
   setAuthError: authError => set({ authError }),
 }));
