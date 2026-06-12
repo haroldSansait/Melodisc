@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  Dimensions,
   Modal,
+  Platform,
   StyleSheet,
   Text,
   TextInput,
@@ -33,6 +35,7 @@ import {
 import {
   SafeAreaProvider,
   useSafeAreaInsets,
+  initialWindowMetrics,
 } from 'react-native-safe-area-context';
 
 type AuthView = 'login' | 'signup';
@@ -159,6 +162,14 @@ function AppContent() {
   const playlists = usePlaylistStore(state => state.playlists);
   const isPlaylistsLoaded = usePlaylistStore(state => state.isLoaded);
   const insets = useSafeAreaInsets();
+
+  console.log('Melodisc AppContent rendering:', {
+    user: user ? { uid: user.uid, email: user.email } : null,
+    isInitialLoading,
+    isHydrated,
+    isPlaylistsLoaded,
+    insets,
+  });
   const bottomInset = Math.max(insets.bottom, 0);
   const playerSlide = useRef(new Animated.Value(0)).current;
   const playerBackdropOpacity = useRef(new Animated.Value(0)).current;
@@ -614,10 +625,60 @@ const styles = StyleSheet.create({
   },
 });
 
+const webInitialMetrics = {
+  frame: {
+    x: 0,
+    y: 0,
+    width: typeof window !== 'undefined' ? window.innerWidth : 800,
+    height: typeof window !== 'undefined' ? window.innerHeight : 600,
+  },
+  insets: { top: 0, left: 0, right: 0, bottom: 0 },
+};
+
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: any) {
+    console.error('Melodisc ErrorBoundary caught an error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#000000', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Text style={{ color: '#FB7185', fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>
+            Melodisc Crashed During Render
+          </Text>
+          <Text style={{ color: '#FFFFFF', fontSize: 14, fontFamily: 'monospace', textAlign: 'center' }}>
+            {this.state.error?.toString()}
+          </Text>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
+  console.log('Melodisc App component rendering');
   return (
-    <SafeAreaProvider>
-      <AppContent />
+    <SafeAreaProvider
+      initialMetrics={Platform.OS === 'web' ? webInitialMetrics : initialWindowMetrics ?? undefined}
+      style={{ flex: 1 }}
+    >
+      <AppErrorBoundary>
+        <AppContent />
+      </AppErrorBoundary>
     </SafeAreaProvider>
   );
 }

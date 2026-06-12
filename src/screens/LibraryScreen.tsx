@@ -24,6 +24,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { artworkAssets } from '../constants/assetRegistry';
 import { tracks, type Track } from '../constants/tracks';
@@ -37,8 +38,16 @@ import { webGlassStyle, webGlassStyleStrong } from '../theme/glassStyles';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-function resolveTrack(trackId: string): Track | null {
-  return tracks.find(t => t.id === trackId) ?? null;
+/**
+ * Resolves a track ID against both bundled and locally imported tracks.
+ * localTracks is passed explicitly to keep this function pure.
+ */
+function resolveTrack(trackId: string, localTracks: Track[] = []): Track | null {
+  return (
+    tracks.find(t => t.id === trackId) ??
+    localTracks.find(t => t.id === trackId) ??
+    null
+  );
 }
 
 function shuffleArray<T>(arr: T[]): T[] {
@@ -50,12 +59,16 @@ function shuffleArray<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-/** Platform-conditional artwork source. */
-function resolveArtworkSource(trackId: string, artworkUri: string) {
-  if (Platform.OS !== 'web' && artworkAssets[trackId]) {
-    return artworkAssets[trackId];
+/** Platform-conditional artwork source. Local tracks always use { uri } directly. */
+function resolveArtworkSource(track: Track) {
+  if (track.isLocal) {
+    // Local imports: artwork is stored as a permanent URI or blob URL
+    return track.artwork ? { uri: track.artwork } : null;
   }
-  return { uri: artworkUri };
+  if (Platform.OS !== 'web' && artworkAssets[track.id]) {
+    return artworkAssets[track.id];
+  }
+  return { uri: track.artwork };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -80,16 +93,21 @@ function AddPlaylistModal({
   const [selectedTrackIds, setSelectedTrackIds] = useState<string[]>([]);
   const [suggestedTracks, setSuggestedTracks] = useState<Track[]>([]);
 
+  // The combined track list includes locally imported tracks for playlist building
+  const allLocalTracks = usePlayerStore(state => state.localTracks);
+  const allTracks = useMemo(() => [...tracks, ...allLocalTracks], [allLocalTracks]);
+
   // Generate suggested tracks when the modal opens
   useEffect(() => {
     if (visible) {
-      const sampled = shuffleArray(tracks).slice(0, 5);
+      const sampled = shuffleArray(allTracks).slice(0, 5);
       setSuggestedTracks(sampled);
     } else {
       setPlaylistName('');
       setSelectedTrackIds([]);
       setSuggestedTracks([]);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible]);
 
   const toggleTrackSelection = useCallback((trackId: string) => {
@@ -130,13 +148,20 @@ function AddPlaylistModal({
 
   const renderTrackItem = (track: Track) => {
     const isSelected = selectedTrackIds.includes(track.id);
+    const artSrc = resolveArtworkSource(track);
 
     return (
       <View key={track.id} style={modalStyles.trackRow}>
-        <Image
-          source={resolveArtworkSource(track.id, track.artwork)}
-          style={modalStyles.trackArt}
-        />
+        {artSrc ? (
+          <Image
+            source={artSrc}
+            style={modalStyles.trackArt}
+          />
+        ) : (
+          <View style={[modalStyles.trackArt, modalStyles.trackArtFallback]}>
+            <Ionicons color="#44444A" name="musical-note" size={18} />
+          </View>
+        )}
         <View style={modalStyles.trackInfo}>
           <Text numberOfLines={1} style={modalStyles.trackTitle}>
             {track.title}
@@ -276,6 +301,7 @@ export function LibraryScreen() {
   const playlists = usePlaylistStore(state => state.playlists);
   const playTrack = usePlayerStore(state => state.playTrack);
   const currentTrack = usePlayerStore(state => state.currentTrack);
+  const localTracks = usePlayerStore(state => state.localTracks);
 
   const [editingPlaylistId, setEditingPlaylistId] = useState<string | null>(
     null,
@@ -297,7 +323,7 @@ export function LibraryScreen() {
 
   const handlePlayAll = (playlistTrackIds: string[]) => {
     if (playlistTrackIds.length === 0) return;
-    const firstTrack = resolveTrack(playlistTrackIds[0]);
+    const firstTrack = resolveTrack(playlistTrackIds[0], localTracks);
     if (firstTrack) {
       playTrack(firstTrack, playlistTrackIds);
     }
@@ -306,7 +332,7 @@ export function LibraryScreen() {
   const handleShufflePlay = (playlistTrackIds: string[]) => {
     if (playlistTrackIds.length === 0) return;
     const shuffled = shuffleArray(playlistTrackIds);
-    const firstTrack = resolveTrack(shuffled[0]);
+    const firstTrack = resolveTrack(shuffled[0], localTracks);
     if (firstTrack) {
       playTrack(firstTrack, shuffled);
     }
@@ -385,7 +411,8 @@ export function LibraryScreen() {
     } else {
       const playlist = playlists.find(item => item.id === playlistId);
       const existingTrackIds = new Set(playlist?.trackIds ?? []);
-      const availableTracks = tracks.filter(
+      const allTracks = [...tracks, ...localTracks];
+      const availableTracks = allTracks.filter(
         track => !existingTrackIds.has(track.id),
       );
 
@@ -419,12 +446,85 @@ export function LibraryScreen() {
           <Text style={styles.addPlaylistBtnText}>Add Playlist</Text>
         </TouchableOpacity>
 
-        {playlists.length === 0 ? (
+        {/* ── Local Imports Section ── */}
+        {localTracks.length > 0 && (
+          <View style={[styles.localImportsCard, webGlassStyle]}>
+            <View style={styles.localImportsHeader}>
+              <View style={[styles.localImportsIcon, { backgroundColor: `${primaryAccent}22` }]}>
+                <Ionicons color={primaryAccent} name="phone-portrait-outline" size={18} />
+              </View>
+              <View style={styles.localImportsHeaderText}>
+                <Text style={styles.localImportsTitle}>Local Imports</Text>
+                <Text style={styles.localImportsMeta}>
+                  {localTracks.length} {localTracks.length === 1 ? 'track' : 'tracks'} from your device
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.savedTrackList}>
+              {localTracks.map(track => {
+                const isActive = currentTrack?.id === track.id;
+                const artSrc = resolveArtworkSource(track);
+
+                return (
+                  <TouchableOpacity
+                    accessibilityLabel={`Play ${track.title} by ${track.artist}`}
+                    activeOpacity={0.82}
+                    key={track.id}
+                    onPress={() => playTrack(track)}
+                    style={styles.savedTrackRow}
+                  >
+                    {artSrc ? (
+                      <Image
+                        source={artSrc}
+                        style={[
+                          styles.savedTrackArt,
+                          isActive && { borderColor: primaryAccent, borderWidth: 2 },
+                        ]}
+                      />
+                    ) : (
+                      <View
+                        style={[
+                          styles.savedTrackArt,
+                          styles.savedTrackArtFallback,
+                          isActive && { borderColor: primaryAccent, borderWidth: 2 },
+                        ]}
+                      >
+                        <Ionicons color="#44444A" name="musical-note" size={20} />
+                      </View>
+                    )}
+                    <View style={styles.savedTrackInfo}>
+                      <Text
+                        numberOfLines={1}
+                        style={[
+                          styles.savedTrackTitle,
+                          isActive && { color: primaryAccent },
+                        ]}
+                      >
+                        {track.title}
+                      </Text>
+                      <Text numberOfLines={1} style={styles.savedTrackArtist}>
+                        {track.artist}
+                      </Text>
+                    </View>
+                    <Ionicons
+                      color={isActive ? primaryAccent : '#44444A'}
+                      name={isActive ? 'volume-high-outline' : 'chevron-forward'}
+                      size={16}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {playlists.length === 0 && localTracks.length === 0 ? (
           <View style={[styles.emptyCard, webGlassStyle]}>
             <ListMusic color="#77777D" size={40} strokeWidth={1.5} />
             <Text style={styles.emptyTitle}>No playlists yet</Text>
             <Text style={styles.emptySubtitle}>
-              Tap "Add Playlist" above to create your first playlist.
+              Tap "Add Playlist" to create your first playlist, or import local music from the Profile tab.
             </Text>
           </View>
         ) : null}
@@ -434,7 +534,7 @@ export function LibraryScreen() {
             const isEditing = editingPlaylistId === playlist.id;
             const isAddingTracks = addingToPlaylistId === playlist.id;
             const resolvedTracks = playlist.trackIds
-              .map(resolveTrack)
+              .map(id => resolveTrack(id, localTracks))
               .filter(Boolean) as Track[];
 
             return (
@@ -618,10 +718,7 @@ export function LibraryScreen() {
                         return (
                           <View key={track.id} style={styles.addTrackRow}>
                             <Image
-                              source={resolveArtworkSource(
-                                track.id,
-                                track.artwork,
-                              )}
+                              source={resolveArtworkSource(track)}
                               style={styles.addTrackArt}
                             />
                             <View style={styles.addTrackInfo}>
@@ -710,10 +807,7 @@ export function LibraryScreen() {
                             style={styles.savedTrackPlayable}
                           >
                             <Image
-                              source={resolveArtworkSource(
-                                track.id,
-                                track.artwork,
-                              )}
+                              source={resolveArtworkSource(track)}
                               style={[
                                 styles.savedTrackArt,
                                 isActive && {
@@ -1058,6 +1152,13 @@ const styles = StyleSheet.create({
     height: 40,
     width: 40,
   },
+  savedTrackArtFallback: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    justifyContent: 'center',
+  },
   savedTrackInfo: {
     flex: 1,
     minWidth: 0,
@@ -1086,6 +1187,40 @@ const styles = StyleSheet.create({
   },
   disabledBtn: {
     opacity: 0.3,
+  },
+  // ── Local Imports Card ──
+  localImportsCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 12,
+    padding: 16,
+  },
+  localImportsHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  localImportsIcon: {
+    alignItems: 'center',
+    borderRadius: 10,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  localImportsHeaderText: {
+    flex: 1,
+  },
+  localImportsTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  localImportsMeta: {
+    color: '#77777D',
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 
@@ -1170,6 +1305,13 @@ const modalStyles = StyleSheet.create({
     borderRadius: 6,
     height: 40,
     width: 40,
+  },
+  trackArtFallback: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    justifyContent: 'center',
   },
   trackInfo: {
     flex: 1,

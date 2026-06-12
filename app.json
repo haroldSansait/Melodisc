@@ -27,7 +27,9 @@
     },
     "plugins": [
       "expo-av",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      "expo-image-picker",
+      "expo-document-picker"
     ],
     "owner": "hksansait",
     "extra": {

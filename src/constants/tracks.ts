@@ -3,8 +3,21 @@ export type Track = {
   title: string;
   artist: string;
   genre: string;
+  /**
+   * Web-relative URI (bundled tracks) or device-local permanent URI (local imports).
+   * For local imports on native, use this field directly as a `{ uri }` source.
+   */
   artwork: string;
+  /**
+   * Web-relative URI (bundled tracks) or device-local permanent URI / blob URL
+   * (local imports). The audio engine reads this field for both platforms.
+   */
   url: string;
+  /**
+   * True for tracks imported from the user's local device storage.
+   * Bundled tracks leave this undefined / false.
+   */
+  isLocal?: boolean;
 };
 
 export const tracks: Track[] = [

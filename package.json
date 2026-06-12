@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@expo/metro-runtime": "~55.0.11",
+    "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-google-signin/google-signin": "^16.0.0",
     "@react-native/new-app-screen": "0.83.6",
@@ -34,8 +35,10 @@
     "expo-asset": "~55.0.17",
     "expo-av": "^16.0.8",
     "expo-dev-client": "~55.0.35",
+    "expo-document-picker": "~55.0.13",
     "expo-file-system": "~55.0.22",
     "expo-gl": "~55.0.14",
+    "expo-image-picker": "~55.0.20",
     "expo-linear-gradient": "~55.0.14",
     "firebase": "^12.13.0",
     "lucide-react": "^1.16.0",

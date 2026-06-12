@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 
 import { tracks, type Track } from '../constants/tracks';
 import { audioAssets } from '../constants/assetRegistry';
@@ -23,6 +25,14 @@ type PlayerState = {
   playlistQueue: string[] | null;
   /** Flag set true while auto-advance eject animation runs */
   isAutoAdvancing: boolean;
+  /**
+   * Locally imported tracks — persisted to AsyncStorage so they survive
+   * full app kill/relaunch cycles. Combined with bundled `tracks` at
+   * runtime to form the full navigable collection.
+   */
+  localTracks: Track[];
+  /** Appends a local track to the persisted collection and notifies all subscribers. */
+  addLocalTrack: (track: Track) => void;
   playTrack: (track: Track, playlistTrackIds?: string[]) => void;
   togglePlay: () => void;
   nextTrack: () => void;
@@ -275,8 +285,13 @@ async function resetNativeAudioEngine() {
 // Shared Utilities
 // ─────────────────────────────────────────────────────────────────────────────
 
-function resolveTrack(trackId: string): Track | null {
-  return tracks.find(t => t.id === trackId) ?? null;
+/**
+ * Resolves a track ID against the combined bundled + local collection.
+ * Accepting the full list as a parameter keeps this pure and avoids
+ * relying on any module-level mutable state.
+ */
+function resolveTrackFromList(trackId: string, allTracks: Track[]): Track | null {
+  return allTracks.find(t => t.id === trackId) ?? null;
 }
 
 function firePlayCount(trackId: string) {
@@ -335,162 +350,9 @@ function dispatchReset() {
 // Zustand Store
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
-  currentTrack: null,
-  currentTrackIndex: -1,
-  isPlaying: false,
-  currentTime: 0,
-  duration: 0,
-  progress: 0,
-  recentTracks: [],
-  playlistQueue: null,
-  isAutoAdvancing: false,
-
-  playTrack: (track, playlistTrackIds) => {
-    const queue = playlistTrackIds ?? null;
-    const sourceList = queue ?? tracks.map(t => t.id);
-    const trackIndex = sourceList.indexOf(track.id);
-
-    const updatedRecents = [
-      track,
-      ...get().recentTracks.filter(t => t.id !== track.id),
-    ].slice(0, 6);
-
-    set({
-      currentTrack: track,
-      currentTrackIndex: trackIndex >= 0 ? trackIndex : 0,
-      currentTime: 0,
-      duration: 0,
-      progress: 0,
-      playlistQueue: queue,
-      recentTracks: updatedRecents,
-    });
-
-    dispatchPlay(track, set);
-    firePlayCount(track.id);
-  },
-
-  togglePlay: () => {
-    const { currentTrack, isPlaying } = get();
-
-    if (!currentTrack) {
-      set({ isPlaying: false });
-      return;
-    }
-
-    dispatchToggle(isPlaying, set);
-  },
-
-  nextTrack: () => {
-    const state = get();
-    const queue = state.playlistQueue;
-    const sourceList = queue ?? tracks.map(t => t.id);
-    const nextIndex =
-      state.currentTrackIndex < 0
-        ? 0
-        : (state.currentTrackIndex + 1) % sourceList.length;
-    const nextId = sourceList[nextIndex];
-    const next = resolveTrack(nextId);
-
-    if (!next) {
-      return;
-    }
-
-    const updatedRecents = [
-      next,
-      ...state.recentTracks.filter(t => t.id !== next.id),
-    ].slice(0, 6);
-
-    set({
-      currentTrack: next,
-      currentTrackIndex: nextIndex,
-      currentTime: 0,
-      duration: 0,
-      progress: 0,
-      recentTracks: updatedRecents,
-    });
-
-    dispatchPlay(next, set);
-    firePlayCount(next.id);
-  },
-
-  previousTrack: () => {
-    const state = get();
-    const queue = state.playlistQueue;
-    const sourceList = queue ?? tracks.map(t => t.id);
-    const previousIndex =
-      state.currentTrackIndex <= 0
-        ? sourceList.length - 1
-        : state.currentTrackIndex - 1;
-    const prevId = sourceList[previousIndex];
-    const prev = resolveTrack(prevId);
-
-    if (!prev) {
-      return;
-    }
-
-    const updatedRecents = [
-      prev,
-      ...state.recentTracks.filter(t => t.id !== prev.id),
-    ].slice(0, 6);
-
-    set({
-      currentTrack: prev,
-      currentTrackIndex: previousIndex,
-      currentTime: 0,
-      duration: 0,
-      progress: 0,
-      recentTracks: updatedRecents,
-    });
-
-    dispatchPlay(prev, set);
-    firePlayCount(prev.id);
-  },
-
-  autoAdvanceToNext: () => {
-    // Signal to the 3D TurntableDeck that an auto-advance is starting.
-    // The deck watches this flag, triggers eject animation,
-    // then calls nextTrack() after the animation completes.
-    set({ isAutoAdvancing: true });
-
-    // Fallback: if the 3D TurntableDeck is not mounted (e.g. playing from Library or on another screen),
-    // or doesn't clear the flag within 250ms, advance to the next track directly.
-    setTimeout(() => {
-      const state = get();
-      if (state.isAutoAdvancing) {
-        set({ isAutoAdvancing: false });
-        state.nextTrack();
-      }
-    }, 250);
-  },
-
-  seek: (progressPercent: number) => {
-    const { duration } = get();
-    if (!Number.isFinite(duration) || duration <= 0) return;
-    if (!Number.isFinite(progressPercent) || progressPercent < 0 || progressPercent > 1) return;
-
-    const targetTime = progressPercent * duration;
-    if (!Number.isFinite(targetTime)) return;
-
-    if (isNative) {
-      if (nativeSound) {
-        nativeSound.setPositionAsync(targetTime * 1000).catch(() => {});
-      }
-    } else {
-      if (webAudio) {
-        webAudio.currentTime = targetTime;
-      }
-    }
-
-    set({
-      currentTime: targetTime,
-      progress: progressPercent,
-    });
-  },
-
-  reset: () => {
-    dispatchReset();
-    set({
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set, get) => ({
       currentTrack: null,
       currentTrackIndex: -1,
       isPlaying: false,
@@ -500,6 +362,182 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       recentTracks: [],
       playlistQueue: null,
       isAutoAdvancing: false,
-    });
-  },
-}));
+      localTracks: [],
+
+      addLocalTrack: (track: Track) => {
+        set(state => ({ localTracks: [...state.localTracks, track] }));
+      },
+
+      playTrack: (track, playlistTrackIds) => {
+        const state = get();
+        const allTracks = [...tracks, ...state.localTracks];
+        const queue = playlistTrackIds ?? null;
+        const sourceList = queue ?? allTracks.map(t => t.id);
+        const trackIndex = sourceList.indexOf(track.id);
+
+        const updatedRecents = [
+          track,
+          ...state.recentTracks.filter(t => t.id !== track.id),
+        ].slice(0, 6);
+
+        set({
+          currentTrack: track,
+          currentTrackIndex: trackIndex >= 0 ? trackIndex : 0,
+          currentTime: 0,
+          duration: 0,
+          progress: 0,
+          playlistQueue: queue,
+          recentTracks: updatedRecents,
+        });
+
+        dispatchPlay(track, set);
+        firePlayCount(track.id);
+      },
+
+      togglePlay: () => {
+        const { currentTrack, isPlaying } = get();
+
+        if (!currentTrack) {
+          set({ isPlaying: false });
+          return;
+        }
+
+        dispatchToggle(isPlaying, set);
+      },
+
+      nextTrack: () => {
+        const state = get();
+        const allTracks = [...tracks, ...state.localTracks];
+        const queue = state.playlistQueue;
+        const sourceList = queue ?? allTracks.map(t => t.id);
+        const nextIndex =
+          state.currentTrackIndex < 0
+            ? 0
+            : (state.currentTrackIndex + 1) % sourceList.length;
+        const nextId = sourceList[nextIndex];
+        const next = resolveTrackFromList(nextId, allTracks);
+
+        if (!next) {
+          return;
+        }
+
+        const updatedRecents = [
+          next,
+          ...state.recentTracks.filter(t => t.id !== next.id),
+        ].slice(0, 6);
+
+        set({
+          currentTrack: next,
+          currentTrackIndex: nextIndex,
+          currentTime: 0,
+          duration: 0,
+          progress: 0,
+          recentTracks: updatedRecents,
+        });
+
+        dispatchPlay(next, set);
+        firePlayCount(next.id);
+      },
+
+      previousTrack: () => {
+        const state = get();
+        const allTracks = [...tracks, ...state.localTracks];
+        const queue = state.playlistQueue;
+        const sourceList = queue ?? allTracks.map(t => t.id);
+        const previousIndex =
+          state.currentTrackIndex <= 0
+            ? sourceList.length - 1
+            : state.currentTrackIndex - 1;
+        const prevId = sourceList[previousIndex];
+        const prev = resolveTrackFromList(prevId, allTracks);
+
+        if (!prev) {
+          return;
+        }
+
+        const updatedRecents = [
+          prev,
+          ...state.recentTracks.filter(t => t.id !== prev.id),
+        ].slice(0, 6);
+
+        set({
+          currentTrack: prev,
+          currentTrackIndex: previousIndex,
+          currentTime: 0,
+          duration: 0,
+          progress: 0,
+          recentTracks: updatedRecents,
+        });
+
+        dispatchPlay(prev, set);
+        firePlayCount(prev.id);
+      },
+
+      autoAdvanceToNext: () => {
+        // Signal to the 3D TurntableDeck that an auto-advance is starting.
+        // The deck watches this flag, triggers eject animation,
+        // then calls nextTrack() after the animation completes.
+        set({ isAutoAdvancing: true });
+
+        // Fallback: if the 3D TurntableDeck is not mounted (e.g. playing from Library or on another screen),
+        // or doesn't clear the flag within 250ms, advance to the next track directly.
+        setTimeout(() => {
+          const state = get();
+          if (state.isAutoAdvancing) {
+            set({ isAutoAdvancing: false });
+            state.nextTrack();
+          }
+        }, 250);
+      },
+
+      seek: (progressPercent: number) => {
+        const { duration } = get();
+        if (!Number.isFinite(duration) || duration <= 0) return;
+        if (!Number.isFinite(progressPercent) || progressPercent < 0 || progressPercent > 1) return;
+
+        const targetTime = progressPercent * duration;
+        if (!Number.isFinite(targetTime)) return;
+
+        if (isNative) {
+          if (nativeSound) {
+            nativeSound.setPositionAsync(targetTime * 1000).catch(() => {});
+          }
+        } else {
+          if (webAudio) {
+            webAudio.currentTime = targetTime;
+          }
+        }
+
+        set({
+          currentTime: targetTime,
+          progress: progressPercent,
+        });
+      },
+
+      reset: () => {
+        dispatchReset();
+        set({
+          currentTrack: null,
+          currentTrackIndex: -1,
+          isPlaying: false,
+          currentTime: 0,
+          duration: 0,
+          progress: 0,
+          recentTracks: [],
+          playlistQueue: null,
+          isAutoAdvancing: false,
+          // Note: localTracks is intentionally NOT reset on logout —
+          // local files are device-owned, not tied to the user account.
+        });
+      },
+    }),
+    {
+      name: 'melodisc-player-store',
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist the local tracks array. All transient playback state
+      // (currentTrack, isPlaying, progress, etc.) is deliberately excluded
+      // so the player always starts fresh on relaunch.
+      partialize: (state) => ({ localTracks: state.localTracks }),
+    },
+  ),
+);

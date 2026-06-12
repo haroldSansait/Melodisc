@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Image,
   Modal,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,11 +12,23 @@ import {
   View,
 } from 'react-native';
 import { Check, LogOut, Palette, Settings as SettingsIcon } from 'lucide-react-native';
+import { FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 
 import { logout, deleteAccount } from '../services/firebase/authService';
+import {
+  copyAudioToSandbox,
+  copyArtworkToSandbox,
+} from '../services/localMediaService';
+import { useLocalMediaPicker } from '../hooks/useLocalMediaPicker';
 import { useAuthStore } from '../store/authStore';
+import { usePlayerStore } from '../store/playerStore';
 import { useThemeStore } from '../store/themeStore';
 import { webGlassStyle, webGlassStyleStrong } from '../theme/glassStyles';
+import type { Track } from '../constants/tracks';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────────────────────
 
 const accentPresets = [
   { id: 'light-blur', name: 'Light Blur', color: '#BDEBFF' },
@@ -22,6 +37,292 @@ const accentPresets = [
   { id: 'sunset-amber', name: 'Sunset Amber', color: '#FDE68A' },
   { id: 'rose', name: 'Rose', color: '#FB7185' },
 ];
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ImportMusicModal
+// ─────────────────────────────────────────────────────────────────────────────
+
+type ImportMusicModalProps = {
+  visible: boolean;
+  onClose: () => void;
+  primaryAccent: string;
+};
+
+function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalProps) {
+  const addLocalTrack = usePlayerStore(state => state.addLocalTrack);
+  const { pickAudio, pickArtwork } = useLocalMediaPicker();
+
+  const [titleInput, setTitleInput] = useState('');
+  const [artistInput, setArtistInput] = useState('');
+  const [pickedAudioUri, setPickedAudioUri] = useState<string | null>(null);
+  const [pickedAudioName, setPickedAudioName] = useState<string | null>(null);
+  const [pickedArtworkUri, setPickedArtworkUri] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const resetState = () => {
+    setTitleInput('');
+    setArtistInput('');
+    setPickedAudioUri(null);
+    setPickedAudioName(null);
+    setPickedArtworkUri(null);
+    setIsImporting(false);
+    setImportError(null);
+  };
+
+  const handleClose = () => {
+    resetState();
+    onClose();
+  };
+
+  const handlePickAudio = async () => {
+    setImportError(null);
+    const result = await pickAudio();
+    if (result) {
+      setPickedAudioUri(result.uri);
+      setPickedAudioName(result.name);
+    }
+  };
+
+  const handlePickArtwork = async () => {
+    setImportError(null);
+    const result = await pickArtwork();
+    if (result) {
+      setPickedArtworkUri(result.uri);
+    }
+  };
+
+  const handleConfirmImport = async () => {
+    if (!pickedAudioUri || !pickedAudioName) {
+      setImportError('Please choose an audio file before importing.');
+      return;
+    }
+
+    setIsImporting(true);
+    setImportError(null);
+
+    try {
+      // Fallback labels per spec
+      const title = titleInput.trim() || 'Unknown Local Track';
+      const artist = artistInput.trim() || 'Local Import';
+
+      // Copy audio to permanent sandbox (native) or return blob URL (web)
+      const permanentAudioUri = await copyAudioToSandbox(pickedAudioUri, pickedAudioName);
+
+      // Copy artwork if provided
+      let permanentArtworkUri = '';
+      if (pickedArtworkUri) {
+        permanentArtworkUri = await copyArtworkToSandbox(pickedArtworkUri);
+      }
+
+      // Build a unique ID using timestamp + sanitized title
+      const id = `local-${Date.now()}-${title.toLowerCase().replace(/\s+/g, '-').slice(0, 20)}`;
+
+      const track: Track = {
+        id,
+        title,
+        artist,
+        genre: 'Local Import',
+        artwork: permanentArtworkUri,
+        url: permanentAudioUri,
+        isLocal: true,
+      };
+
+      addLocalTrack(track);
+      resetState();
+      onClose();
+    } catch {
+      setImportError('Failed to import the file. Please try again.');
+      setIsImporting(false);
+    }
+  };
+
+  // Truncate long file names for the label
+  const audioLabel = pickedAudioName
+    ? pickedAudioName.length > 36
+      ? `${pickedAudioName.slice(0, 33)}...`
+      : pickedAudioName
+    : 'No file selected';
+
+  return (
+    <Modal
+      animationType="slide"
+      onRequestClose={handleClose}
+      transparent
+      visible={visible}
+    >
+      <View style={importStyles.backdrop}>
+        <View style={[importStyles.container, webGlassStyleStrong]}>
+          {/* Header */}
+          <View style={importStyles.header}>
+            <View style={importStyles.headerLeft}>
+              <Ionicons
+                color={primaryAccent}
+                name="cloud-upload-outline"
+                size={22}
+              />
+              <Text style={importStyles.headerTitle}>Import Local Music</Text>
+            </View>
+            <TouchableOpacity
+              accessibilityLabel="Close import dialog"
+              activeOpacity={0.75}
+              onPress={handleClose}
+              style={importStyles.closeBtn}
+            >
+              <Ionicons color="#FFFFFF" name="close" size={18} />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            contentContainerStyle={importStyles.scrollContent}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
+            {/* ── Audio File Picker ── */}
+            <View style={importStyles.section}>
+              <Text style={importStyles.sectionLabel}>Audio File</Text>
+              <TouchableOpacity
+                accessibilityLabel="Choose audio file"
+                activeOpacity={0.8}
+                onPress={handlePickAudio}
+                style={[
+                  importStyles.filePicker,
+                  pickedAudioUri && { borderColor: `${primaryAccent}66` },
+                ]}
+              >
+                <FontAwesome
+                  color={pickedAudioUri ? primaryAccent : '#77777D'}
+                  name="music"
+                  size={18}
+                />
+                <View style={importStyles.filePickerText}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      importStyles.filePickerLabel,
+                      pickedAudioUri && { color: primaryAccent },
+                    ]}
+                  >
+                    {pickedAudioUri ? audioLabel : 'Choose Audio File'}
+                  </Text>
+                  {!pickedAudioUri && (
+                    <Text style={importStyles.filePickerSub}>
+                      MP3, M4A, FLAC, WAV, OGG and more
+                    </Text>
+                  )}
+                </View>
+                {pickedAudioUri && (
+                  <Ionicons color={primaryAccent} name="checkmark-circle" size={20} />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            {/* ── Cover Art + Metadata Row ── */}
+            <View style={importStyles.artAndMeta}>
+              {/* Artwork thumbnail */}
+              <View style={importStyles.artFrame}>
+                {pickedArtworkUri ? (
+                  <Image
+                    source={{ uri: pickedArtworkUri }}
+                    style={importStyles.artPreview}
+                  />
+                ) : (
+                  <View style={importStyles.artPlaceholder}>
+                    <MaterialIcons color="#44444A" name="album" size={40} />
+                  </View>
+                )}
+                <TouchableOpacity
+                  accessibilityLabel="Attach cover art"
+                  activeOpacity={0.8}
+                  onPress={handlePickArtwork}
+                  style={[
+                    importStyles.artBtn,
+                    { backgroundColor: `${primaryAccent}22`, borderColor: `${primaryAccent}44` },
+                  ]}
+                >
+                  <MaterialIcons color={primaryAccent} name="photo-library" size={14} />
+                  <Text style={[importStyles.artBtnText, { color: primaryAccent }]}>
+                    {pickedArtworkUri ? 'Change' : 'Attach Cover Art'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Text inputs */}
+              <View style={importStyles.metaFields}>
+                <View style={importStyles.fieldGroup}>
+                  <Text style={importStyles.fieldLabel}>Song Title</Text>
+                  <TextInput
+                    accessibilityLabel="Song title"
+                    onChangeText={setTitleInput}
+                    placeholder="Unknown Local Track"
+                    placeholderTextColor="#44444A"
+                    style={importStyles.textInput}
+                    value={titleInput}
+                  />
+                </View>
+                <View style={importStyles.fieldGroup}>
+                  <Text style={importStyles.fieldLabel}>Artist Name</Text>
+                  <TextInput
+                    accessibilityLabel="Artist name"
+                    onChangeText={setArtistInput}
+                    placeholder="Local Import"
+                    placeholderTextColor="#44444A"
+                    style={importStyles.textInput}
+                    value={artistInput}
+                  />
+                </View>
+              </View>
+            </View>
+
+            {/* Error */}
+            {importError ? (
+              <View style={importStyles.errorRow}>
+                <Ionicons color="#FB7185" name="alert-circle-outline" size={16} />
+                <Text style={importStyles.errorText}>{importError}</Text>
+              </View>
+            ) : null}
+          </ScrollView>
+
+          {/* Action buttons */}
+          <View style={importStyles.actions}>
+            <TouchableOpacity
+              activeOpacity={0.78}
+              disabled={isImporting}
+              onPress={handleClose}
+              style={importStyles.cancelBtn}
+            >
+              <Text style={importStyles.cancelBtnText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityLabel="Confirm import"
+              activeOpacity={0.82}
+              disabled={isImporting || !pickedAudioUri}
+              onPress={handleConfirmImport}
+              style={[
+                importStyles.confirmBtn,
+                { backgroundColor: primaryAccent },
+                (isImporting || !pickedAudioUri) && importStyles.disabledBtn,
+              ]}
+            >
+              {isImporting ? (
+                <ActivityIndicator color="#000000" size="small" />
+              ) : (
+                <Ionicons color="#000000" name="cloud-upload-outline" size={18} />
+              )}
+              <Text style={importStyles.confirmBtnText}>
+                {isImporting ? 'Importing...' : 'Confirm Import'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProfileScreen
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function ProfileScreen() {
   const user = useAuthStore(state => state.user);
@@ -32,6 +333,7 @@ export function ProfileScreen() {
   const setDisplayName = useThemeStore(state => state.setDisplayName);
   const graphicsQuality = useThemeStore(state => state.graphicsQuality);
   const setGraphicsQuality = useThemeStore(state => state.setGraphicsQuality);
+  const localTracksCount = usePlayerStore(state => state.localTracks.length);
 
   const currentName = displayName || user?.displayName || '';
   const [nameInput, setNameInput] = useState(currentName);
@@ -39,6 +341,7 @@ export function ProfileScreen() {
 
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isSettingsModalVisible, setIsSettingsModalVisible] = useState(false);
+  const [isImportModalVisible, setIsImportModalVisible] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -164,6 +467,27 @@ export function ProfileScreen() {
             })}
           </View>
         </View>
+
+        {/* ── Import Local Music Card ── */}
+        <TouchableOpacity
+          accessibilityLabel="Import local music from device"
+          activeOpacity={0.82}
+          onPress={() => setIsImportModalVisible(true)}
+          style={[styles.importCard, { borderColor: `${primaryAccent}33` }, webGlassStyle]}
+        >
+          <View style={[styles.importIconWrap, { backgroundColor: `${primaryAccent}18` }]}>
+            <Ionicons color={primaryAccent} name="cloud-upload-outline" size={26} />
+          </View>
+          <View style={styles.importCardText}>
+            <Text style={styles.importCardTitle}>Import Local Music</Text>
+            <Text style={styles.importCardSub}>
+              {localTracksCount > 0
+                ? `${localTracksCount} local track${localTracksCount === 1 ? '' : 's'} imported`
+                : 'Add audio files from your device'}
+            </Text>
+          </View>
+          <Ionicons color="#44444A" name="chevron-forward" size={20} />
+        </TouchableOpacity>
 
         {/* Sign Out */}
         <TouchableOpacity
@@ -309,9 +633,20 @@ export function ProfileScreen() {
           </View>
         </Modal>
       </ScrollView>
+
+      {/* Import Music Modal — rendered outside ScrollView to avoid clipping */}
+      <ImportMusicModal
+        onClose={() => setIsImportModalVisible(false)}
+        primaryAccent={primaryAccent}
+        visible={isImportModalVisible}
+      />
     </View>
   );
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Styles — Profile Screen
+// ─────────────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   screen: {
@@ -436,6 +771,37 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+  // ── Import Card ──
+  importCard: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderRadius: 16,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 14,
+    padding: 16,
+  },
+  importIconWrap: {
+    alignItems: 'center',
+    borderRadius: 12,
+    height: 48,
+    justifyContent: 'center',
+    width: 48,
+  },
+  importCardText: {
+    flex: 1,
+    gap: 3,
+  },
+  importCardTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  importCardSub: {
+    color: '#77777D',
+    fontSize: 12,
+  },
+  // ── Sign Out / Delete ──
   signOutButton: {
     alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -468,6 +834,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
   },
+  // ── Modals (Delete + Settings) ──
   modalScrim: {
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.72)',
@@ -604,5 +971,214 @@ const styles = StyleSheet.create({
     color: '#000000',
     fontSize: 14,
     fontWeight: '900',
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Styles — Import Music Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+const importStyles = StyleSheet.create({
+  backdrop: {
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    flex: 1,
+    justifyContent: 'flex-end',
+    ...(Platform.OS === 'web' ? { justifyContent: 'center', padding: 20 } : {}),
+  },
+  container: {
+    backgroundColor: 'rgba(14, 14, 20, 0.97)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    borderWidth: 1,
+    maxHeight: '90%',
+    overflow: 'hidden',
+    ...(Platform.OS === 'web'
+      ? {
+          borderRadius: 20,
+          maxWidth: 520,
+          alignSelf: 'center',
+          width: '100%',
+        }
+      : {}),
+  },
+  header: {
+    alignItems: 'center',
+    borderBottomColor: 'rgba(255, 255, 255, 0.08)',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+  },
+  headerLeft: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  closeBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  scrollContent: {
+    gap: 20,
+    padding: 20,
+  },
+  section: {
+    gap: 8,
+  },
+  sectionLabel: {
+    color: '#B3B3B3',
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+  filePicker: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 14,
+    borderStyle: 'dashed',
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 12,
+    minHeight: 60,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  filePickerText: {
+    flex: 1,
+    gap: 2,
+  },
+  filePickerLabel: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  filePickerSub: {
+    color: '#44444A',
+    fontSize: 11,
+  },
+  artAndMeta: {
+    flexDirection: 'row',
+    gap: 14,
+  },
+  artFrame: {
+    gap: 8,
+    width: 100,
+  },
+  artPreview: {
+    borderRadius: 10,
+    height: 100,
+    width: 100,
+  },
+  artPlaceholder: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 100,
+    justifyContent: 'center',
+    width: 100,
+  },
+  artBtn: {
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    gap: 4,
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+  },
+  artBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  metaFields: {
+    flex: 1,
+    gap: 12,
+  },
+  fieldGroup: {
+    gap: 6,
+  },
+  fieldLabel: {
+    color: '#77777D',
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+  },
+  textInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 10,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 14,
+    minHeight: 42,
+    paddingHorizontal: 12,
+  },
+  errorRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  errorText: {
+    color: '#FB7185',
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  actions: {
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    gap: 10,
+    padding: 16,
+  },
+  cancelBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    borderWidth: 1,
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  cancelBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  confirmBtn: {
+    alignItems: 'center',
+    borderRadius: 12,
+    flex: 2,
+    flexDirection: 'row',
+    gap: 8,
+    justifyContent: 'center',
+    minHeight: 50,
+  },
+  confirmBtnText: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  disabledBtn: {
+    opacity: 0.45,
   },
 });

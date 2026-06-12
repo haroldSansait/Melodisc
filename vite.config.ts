@@ -38,6 +38,14 @@ export default defineConfig({
         replacement: 'lucide-react',
       },
       {
+        find: '@expo/vector-icons',
+        replacement: fileURLToPath(new URL('./src/shims/expo-vector-icons.web.tsx', import.meta.url)),
+      },
+      {
+        find: '@react-native-async-storage/async-storage',
+        replacement: fileURLToPath(new URL('./src/shims/async-storage.web.ts', import.meta.url)),
+      },
+      {
         find: '@react-native-google-signin/google-signin',
         replacement: fileURLToPath(new URL('./src/shims/google-signin.web.ts', import.meta.url)),
       },
