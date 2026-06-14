@@ -121,7 +121,12 @@ export function AppNavigator() {
     return unsubscribe;
   }, []);
 
-  if (isInitialLoading) {
+  // Guest sessions are persisted in the player store (AsyncStorage) and hydrate
+  // independently of Firebase auth. isInitialLoading only clears once
+  // onAuthStateChanged fires — which can take several seconds on Android.
+  // A confirmed guest must never be blocked by that delay, so we short-circuit
+  // the loading gate when isGuest is already true.
+  if (isInitialLoading && !isGuest) {
     return (
       <View
         style={[

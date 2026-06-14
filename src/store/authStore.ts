@@ -129,18 +129,20 @@ export const useAuthStore = create<AuthState>(set => ({
     }
 
     set({ user });
-
-// Listen for external changes to auth token in localStorage
-if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
-  window.addEventListener('storage', event => {
-    if (event.key === AUTH_CONTEXT_STORAGE_KEY && event.newValue === null) {
-      // Token was cleared, update auth store state
-      useAuthStore.getState().setUser(null);
-    }
-  });
-}
   },
   setLoading: isLoading => set({ isLoading }),
   setInitialLoading: isInitialLoading => set({ isInitialLoading }),
   setAuthError: authError => set({ authError }),
 }));
+
+// ─── Module-level, one-time listener ─────────────────────────────────────────
+// Listen for external clearance of the auth token in localStorage (e.g. another
+// tab signs out). Registered once at module load — NOT inside setUser — to
+// prevent unbounded listener accumulation that caused an infinite update loop.
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+  window.addEventListener('storage', event => {
+    if (event.key === AUTH_CONTEXT_STORAGE_KEY && event.newValue === null) {
+      useAuthStore.getState().setUser(null);
+    }
+  });
+}
