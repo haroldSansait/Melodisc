@@ -3,12 +3,12 @@
     "name": "Melodisc",
     "slug": "melodisc",
     "scheme": "melodisc",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "orientation": "portrait",
     "icon": "./src/assets/melodisc_app_cover.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./src/assets/melodisc_logo.png",
+      "image": "./src/assets/melodisc_app_cover.png",
       "resizeMode": "contain",
       "backgroundColor": "#121214"
     },
