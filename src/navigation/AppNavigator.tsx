@@ -6,6 +6,7 @@ import { Home, Music2, Settings } from 'lucide-react-native';
 
 import { subscribeToAuthChanges } from '../services/firebase/authService';
 import { useAuthStore } from '../store/authStore';
+import { usePlayerStore } from '../store/playerStore';
 import { useTheme } from '../theme/useTheme';
 import { AuthStack } from './AuthStack';
 
@@ -112,6 +113,7 @@ export function AppNavigator() {
   const theme = useTheme();
   const user = useAuthStore(state => state.user);
   const isInitialLoading = useAuthStore(state => state.isInitialLoading);
+  const isGuest = usePlayerStore(state => state.isGuest);
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthChanges();
@@ -134,7 +136,7 @@ export function AppNavigator() {
 
   return (
     <NavigationContainer>
-      {user ? <MainTabs /> : <AuthStack />}
+      {user || isGuest ? <MainTabs /> : <AuthStack />}
     </NavigationContainer>
   );
 }

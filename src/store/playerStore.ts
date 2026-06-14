@@ -8,11 +8,20 @@ import { audioAssets } from '../constants/assetRegistry';
 import { useAuthStore } from './authStore';
 import { recordTrackPlay } from '../services/firebase/firestoreService';
 
+// Lazily imported only on native to avoid web bundle bloat (file-system ops)
+let ExpoFileSystem: typeof import('expo-file-system') | null = null;
+async function getExpoFileSystem() {
+  if (!ExpoFileSystem) {
+    ExpoFileSystem = await import('expo-file-system');
+  }
+  return ExpoFileSystem;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-type PlayerState = {
+export type PlayerState = {
   currentTrack: Track | null;
   currentTrackIndex: number;
   isPlaying: boolean;
@@ -31,8 +40,39 @@ type PlayerState = {
    * runtime to form the full navigable collection.
    */
   localTracks: Track[];
+  /**
+   * Offline Guest Mode — Update 1.3
+   * Tracks whether the user bypassed Firebase auth and entered as a guest.
+   * Persisted to AsyncStorage so the guest session survives app restarts.
+   */
+  isGuest: boolean;
+  /** The display name the guest entered when invoking guest mode. */
+  guestDisplayName: string | null;
   /** Appends a local track to the persisted collection and notifies all subscribers. */
   addLocalTrack: (track: Track) => void;
+  /**
+   * Permanently removes a locally imported track from both the device
+   * file-system and the persisted Zustand store state.
+   *
+   * - Erases `file://`-prefixed audio and artwork binaries from the sandbox.
+   * - If the track is currently active, stops playback before eviction.
+   * - File-system errors are swallowed so store consistency is always maintained.
+   */
+  deleteLocalTrack: (trackId: string) => Promise<void>;
+  /**
+   * Activates offline guest mode. Stores the provided display name,
+   * toggles `isGuest` to true, and the Zustand `persist` middleware
+   * immediately flushes both values to AsyncStorage.
+   */
+  loginAsGuest: (name: string) => void;
+  /**
+   * Update 1.3.1 — Inline guest name edit.
+   * Mutates the persisted guestDisplayName string. Because `guestDisplayName`
+   * is included in the `partialize` selector, the Zustand `persist` middleware
+   * intercepts this `set` call and immediately flushes the new value to
+   * AsyncStorage — no manual storage write is required.
+   */
+  updateGuestDisplayName: (newName: string) => void;
   playTrack: (track: Track, playlistTrackIds?: string[]) => void;
   togglePlay: () => void;
   nextTrack: () => void;
@@ -363,9 +403,80 @@ export const usePlayerStore = create<PlayerState>()(
       playlistQueue: null,
       isAutoAdvancing: false,
       localTracks: [],
+      isGuest: false,
+      guestDisplayName: null,
+
+      loginAsGuest: (name: string) => {
+        set({ isGuest: true, guestDisplayName: name });
+      },
+
+      updateGuestDisplayName: (newName: string) => {
+        set({ guestDisplayName: newName });
+      },
 
       addLocalTrack: (track: Track) => {
         set(state => ({ localTracks: [...state.localTracks, track] }));
+      },
+
+      deleteLocalTrack: async (trackId: string) => {
+        const state = get();
+        const target = state.localTracks.find(t => t.id === trackId);
+
+        // Track not found — exit cleanly.
+        if (!target) {
+          return;
+        }
+
+        // If the track is currently loaded in the player, stop playback first
+        // to prevent audio-engine exceptions after the source is removed.
+        if (state.currentTrack?.id === trackId) {
+          dispatchReset();
+          set({
+            currentTrack: null,
+            currentTrackIndex: -1,
+            isPlaying: false,
+            currentTime: 0,
+            duration: 0,
+            progress: 0,
+            playlistQueue: null,
+            isAutoAdvancing: false,
+          });
+        }
+
+        // Purge physical files from the sandbox (native only).
+        // Uses the same File class as localMediaService.ts for API consistency.
+        if (Platform.OS !== 'web') {
+          try {
+            const { File } = await getExpoFileSystem() as unknown as {
+              File: new (uri: string) => { exists: boolean; delete: () => void };
+            };
+
+            const tryDeleteFile = (uri: string) => {
+              try {
+                if (uri.startsWith('file://')) {
+                  const file = new File(uri);
+                  if (file.exists) {
+                    file.delete();
+                  }
+                }
+              } catch {
+                // Individual file deletion errors must not propagate.
+              }
+            };
+
+            tryDeleteFile(target.url);
+            if (target.artwork) {
+              tryDeleteFile(target.artwork);
+            }
+          } catch {
+            // expo-file-system import failure must not prevent state eviction.
+          }
+        }
+
+        // Evict the metadata record from the persisted store.
+        set(state => ({
+          localTracks: state.localTracks.filter(t => t.id !== trackId),
+        }));
       },
 
       playTrack: (track, playlistTrackIds) => {
@@ -526,6 +637,9 @@ export const usePlayerStore = create<PlayerState>()(
           recentTracks: [],
           playlistQueue: null,
           isAutoAdvancing: false,
+          // Guest mode flags are cleared on explicit sign-out / reset.
+          isGuest: false,
+          guestDisplayName: null,
           // Note: localTracks is intentionally NOT reset on logout —
           // local files are device-owned, not tied to the user account.
         });
@@ -534,10 +648,31 @@ export const usePlayerStore = create<PlayerState>()(
     {
       name: 'melodisc-player-store',
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist the local tracks array. All transient playback state
-      // (currentTrack, isPlaying, progress, etc.) is deliberately excluded
-      // so the player always starts fresh on relaunch.
-      partialize: (state) => ({ localTracks: state.localTracks }),
+      // Persist local tracks and guest identity flags.
+      // All transient playback state (currentTrack, isPlaying, progress, etc.)
+      // is deliberately excluded so the player always starts fresh on relaunch.
+      partialize: (state) => ({
+        localTracks: state.localTracks,
+        isGuest: state.isGuest,
+        guestDisplayName: state.guestDisplayName,
+      }),
     },
   ),
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Selectors
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Returns the combined catalog of bundled tracks and user-imported local
+ * tracks in a stable reference-safe way. Always call this outside of render
+ * via `usePlayerStore(getAllTracks)` or `usePlayerStore.getState().localTracks`
+ * combined with the static `tracks` constant at the call site.
+ *
+ * Usage inside a component:
+ *   const allTracks = usePlayerStore(getAllTracks);
+ */
+export function getAllTracks(state: PlayerState): Track[] {
+  return [...tracks, ...state.localTracks];
+}

@@ -300,6 +300,7 @@ export function LibraryScreen() {
   const user = useAuthStore(state => state.user);
   const playlists = usePlaylistStore(state => state.playlists);
   const playTrack = usePlayerStore(state => state.playTrack);
+  const deleteLocalTrack = usePlayerStore(state => state.deleteLocalTrack);
   const currentTrack = usePlayerStore(state => state.currentTrack);
   const localTracks = usePlayerStore(state => state.localTracks);
 
@@ -507,11 +508,22 @@ export function LibraryScreen() {
                         {track.artist}
                       </Text>
                     </View>
-                    <Ionicons
-                      color={isActive ? primaryAccent : '#44444A'}
-                      name={isActive ? 'volume-high-outline' : 'chevron-forward'}
-                      size={16}
-                    />
+                    <View style={styles.localTrackEndGroup}>
+                      <Ionicons
+                        color={isActive ? primaryAccent : '#44444A'}
+                        name={isActive ? 'volume-high-outline' : 'chevron-forward'}
+                        size={16}
+                      />
+                      <TouchableOpacity
+                        accessibilityLabel={`Delete ${track.title} from local imports`}
+                        activeOpacity={0.7}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        onPress={() => deleteLocalTrack(track.id)}
+                        style={styles.deleteLocalTrackBtn}
+                      >
+                        <Ionicons color="#FB7185" name="trash-outline" size={17} />
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 );
               })}
@@ -1221,6 +1233,19 @@ const styles = StyleSheet.create({
     color: '#77777D',
     fontSize: 12,
     marginTop: 2,
+  },
+  localTrackEndGroup: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 10,
+  },
+  deleteLocalTrackBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(251, 113, 133, 0.1)',
+    borderRadius: 8,
+    height: 30,
+    justifyContent: 'center',
+    width: 30,
   },
 });
 

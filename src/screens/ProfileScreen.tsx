@@ -48,6 +48,23 @@ type ImportMusicModalProps = {
   primaryAccent: string;
 };
 
+// Genre options sourced from the app's genre taxonomy (mirrors SearchScreen genreTiles)
+const GENRE_OPTIONS = [
+  'K-Pop',
+  'R&B',
+  'Neo-Soul',
+  'Jazz Pop',
+  'Jazz Standards',
+  'OPM',
+  'Synth-pop',
+  'Rage Rap',
+  'Funk',
+  'Pop',
+  'Alt R&B',
+  'Disco Pop',
+  'Local Import',
+];
+
 function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalProps) {
   const addLocalTrack = usePlayerStore(state => state.addLocalTrack);
   const { pickAudio, pickArtwork } = useLocalMediaPicker();
@@ -59,6 +76,8 @@ function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalP
   const [pickedArtworkUri, setPickedArtworkUri] = useState<string | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState('Local Import');
+  const [isGenreDropdownOpen, setIsGenreDropdownOpen] = useState(false);
 
   const resetState = () => {
     setTitleInput('');
@@ -68,6 +87,8 @@ function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalP
     setPickedArtworkUri(null);
     setIsImporting(false);
     setImportError(null);
+    setSelectedGenre('Local Import');
+    setIsGenreDropdownOpen(false);
   };
 
   const handleClose = () => {
@@ -122,7 +143,7 @@ function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalP
         id,
         title,
         artist,
-        genre: 'Local Import',
+        genre: selectedGenre,
         artwork: permanentArtworkUri,
         url: permanentAudioUri,
         isLocal: true,
@@ -146,7 +167,7 @@ function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalP
 
   return (
     <Modal
-      animationType="slide"
+      animationType="fade"
       onRequestClose={handleClose}
       transparent
       visible={visible}
@@ -274,6 +295,68 @@ function ImportMusicModal({ visible, onClose, primaryAccent }: ImportMusicModalP
               </View>
             </View>
 
+            {/* ── Genre Dropdown ── */}
+            <View style={importStyles.section}>
+              <Text style={importStyles.sectionLabel}>Genre</Text>
+              <TouchableOpacity
+                accessibilityLabel="Select genre"
+                activeOpacity={0.82}
+                onPress={() => setIsGenreDropdownOpen(prev => !prev)}
+                style={[
+                  importStyles.dropdownHeader,
+                  isGenreDropdownOpen && { borderColor: `${primaryAccent}66` },
+                ]}
+              >
+                <Text style={importStyles.dropdownHeaderText}>{selectedGenre}</Text>
+                <Ionicons
+                  color={isGenreDropdownOpen ? primaryAccent : '#77777D'}
+                  name={isGenreDropdownOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
+                  size={18}
+                />
+              </TouchableOpacity>
+
+              {isGenreDropdownOpen && (
+                <View style={importStyles.dropdownList}>
+                  {GENRE_OPTIONS.map(genre => {
+                    const isSelected = genre === selectedGenre;
+                    return (
+                      <TouchableOpacity
+                        accessibilityLabel={`Select genre ${genre}`}
+                        activeOpacity={0.76}
+                        key={genre}
+                        onPress={() => {
+                          setSelectedGenre(genre);
+                          setIsGenreDropdownOpen(false);
+                        }}
+                        style={[
+                          importStyles.dropdownItem,
+                          isSelected && {
+                            backgroundColor: `${primaryAccent}18`,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            importStyles.dropdownItemText,
+                            isSelected && { color: primaryAccent, fontWeight: '800' },
+                          ]}
+                        >
+                          {genre}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons
+                            color={primaryAccent}
+                            name="checkmark"
+                            size={16}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+
             {/* Error */}
             {importError ? (
               <View style={importStyles.errorRow}>
@@ -334,8 +417,21 @@ export function ProfileScreen() {
   const graphicsQuality = useThemeStore(state => state.graphicsQuality);
   const setGraphicsQuality = useThemeStore(state => state.setGraphicsQuality);
   const localTracksCount = usePlayerStore(state => state.localTracks.length);
+  const isGuest = usePlayerStore(state => state.isGuest);
+  const guestDisplayName = usePlayerStore(state => state.guestDisplayName);
+  const resetPlayer = usePlayerStore(state => state.reset);
+  const updateGuestDisplayName = usePlayerStore(state => state.updateGuestDisplayName);
 
-  const currentName = displayName || user?.displayName || '';
+  // ── Guest inline name editing state (Update 1.3.1) ──
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [editNameInput, setEditNameInput] = useState('');
+
+  // For guests, we show their chosen name read-only from the store.
+  // For Firebase users, we use the cloud-synced displayName with editable input.
+  const currentName = isGuest
+    ? (guestDisplayName ?? '')
+    : (displayName || user?.displayName || '');
+
   const [nameInput, setNameInput] = useState(currentName);
   const [nameSaved, setNameSaved] = useState(false);
 
@@ -370,7 +466,7 @@ export function ProfileScreen() {
   };
 
   const avatarLetter = (
-    nameInput || currentName || user?.email || 'M'
+    (isGuest ? guestDisplayName : nameInput) || currentName || user?.email || 'M'
   ).charAt(0).toUpperCase();
 
   return (
@@ -396,31 +492,96 @@ export function ProfileScreen() {
             <Text style={styles.avatarText}>{avatarLetter}</Text>
           </View>
 
-          {/* Display name editor */}
-          <View style={styles.nameRow}>
-            <TextInput
-              onChangeText={setNameInput}
-              placeholder="Display Name"
-              placeholderTextColor="#77777D"
-              style={styles.nameInput}
-              value={nameInput}
-            />
-            <TouchableOpacity
-              activeOpacity={0.78}
-              onPress={handleSaveName}
-              style={[styles.saveButton, { backgroundColor: primaryAccent }]}
-            >
-              {nameSaved ? (
-                <Check color="#000000" size={16} strokeWidth={3} />
+          {/* Display name editor — hidden for guest sessions */}
+          {!isGuest ? (
+            <View style={styles.nameRow}>
+              <TextInput
+                onChangeText={setNameInput}
+                placeholder="Display Name"
+                placeholderTextColor="#77777D"
+                style={styles.nameInput}
+                value={nameInput}
+              />
+              <TouchableOpacity
+                activeOpacity={0.78}
+                onPress={handleSaveName}
+                style={[styles.saveButton, { backgroundColor: primaryAccent }]}
+              >
+                {nameSaved ? (
+                  <Check color="#000000" size={16} strokeWidth={3} />
+                ) : (
+                  <Text style={styles.saveButtonText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            // Guest: inline editable name display (Update 1.3.1)
+            <View style={styles.guestNameDisplay}>
+              {isEditingName ? (
+                // Active editing row: TextInput + confirm + cancel
+                <>
+                  <TextInput
+                    accessibilityLabel="Edit guest display name"
+                    autoFocus
+                    maxLength={40}
+                    onChangeText={setEditNameInput}
+                    placeholder="Display Name"
+                    placeholderTextColor="#44444A"
+                    style={styles.guestNameInput}
+                    value={editNameInput}
+                  />
+                  <TouchableOpacity
+                    accessibilityLabel="Confirm name change"
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      const trimmed = editNameInput.trim();
+                      if (trimmed.length > 0) {
+                        updateGuestDisplayName(trimmed);
+                        setIsEditingName(false);
+                      }
+                    }}
+                    style={[styles.guestEditBtn, { borderColor: `${primaryAccent}55` }]}
+                  >
+                    <Ionicons color={primaryAccent} name="checkmark-outline" size={19} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    accessibilityLabel="Cancel name edit"
+                    activeOpacity={0.75}
+                    onPress={() => setIsEditingName(false)}
+                    style={[styles.guestEditBtn, { borderColor: 'rgba(255,255,255,0.12)' }]}
+                  >
+                    <Ionicons color="#77777D" name="close-outline" size={19} />
+                  </TouchableOpacity>
+                </>
               ) : (
-                <Text style={styles.saveButtonText}>Save</Text>
+                // Static display row: person icon + name + pencil trigger
+                <TouchableOpacity
+                  accessibilityLabel="Edit guest display name"
+                  activeOpacity={0.75}
+                  onPress={() => {
+                    setEditNameInput(guestDisplayName ?? '');
+                    setIsEditingName(true);
+                  }}
+                  style={styles.guestNameRow}
+                >
+                  <Ionicons color="#77777D" name="person-outline" size={16} />
+                  <Text style={styles.guestNameText} numberOfLines={1}>
+                    {guestDisplayName ?? 'Guest'}
+                  </Text>
+                  <Ionicons color="#77777D" name="pencil-outline" size={14} />
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
-          </View>
+            </View>
+          )}
 
-          <Text numberOfLines={1} style={styles.email}>
-            {user?.email ?? 'No email available'}
-          </Text>
+          {/* Email row — hidden for guest sessions (no cloud account) */}
+          {!isGuest ? (
+            <Text numberOfLines={1} style={styles.email}>
+              {user?.email ?? 'No email available'}
+            </Text>
+          ) : (
+            <Text style={styles.guestOfflineLabel}>Offline Guest Session</Text>
+          )}
         </View>
 
         {/* Theme Picker */}
@@ -489,38 +650,54 @@ export function ProfileScreen() {
           <Ionicons color="#44444A" name="chevron-forward" size={20} />
         </TouchableOpacity>
 
-        {/* Sign Out */}
-        <TouchableOpacity
-          activeOpacity={0.82}
-          disabled={isLoading}
-          onPress={logout}
-          style={[
-            styles.signOutButton,
-            { borderColor: primaryAccent },
-            isLoading && styles.disabledButton,
-          ]}
-        >
-          <LogOut color={primaryAccent} size={18} strokeWidth={2} />
-          <Text style={[styles.signOutButtonText, { color: primaryAccent }]}>
-            {isLoading ? 'Signing Out...' : 'Sign Out'}
-          </Text>
-        </TouchableOpacity>
+        {/* Sign Out — hidden for guests; replaced by Exit Guest Mode */}
+        {!isGuest ? (
+          <TouchableOpacity
+            activeOpacity={0.82}
+            disabled={isLoading}
+            onPress={logout}
+            style={[
+              styles.signOutButton,
+              { borderColor: primaryAccent },
+              isLoading && styles.disabledButton,
+            ]}
+          >
+            <LogOut color={primaryAccent} size={18} strokeWidth={2} />
+            <Text style={[styles.signOutButtonText, { color: primaryAccent }]}>
+              {isLoading ? 'Signing Out...' : 'Sign Out'}
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            accessibilityLabel="Exit Guest Mode"
+            activeOpacity={0.82}
+            onPress={resetPlayer}
+            style={[styles.signOutButton, { borderColor: primaryAccent }]}
+          >
+            <LogOut color={primaryAccent} size={18} strokeWidth={2} />
+            <Text style={[styles.signOutButtonText, { color: primaryAccent }]}>
+              Exit Guest Mode
+            </Text>
+          </TouchableOpacity>
+        )}
 
-        {/* Delete Account Button */}
-        <TouchableOpacity
-          activeOpacity={0.82}
-          disabled={isLoading}
-          onPress={() => {
-            setDeleteError(null);
-            setIsDeleteModalVisible(true);
-          }}
-          style={[
-            styles.deleteAccountButton,
-            isLoading && styles.disabledButton,
-          ]}
-        >
-          <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
-        </TouchableOpacity>
+        {/* Delete Account Button — hidden for guest sessions (no cloud account) */}
+        {!isGuest ? (
+          <TouchableOpacity
+            activeOpacity={0.82}
+            disabled={isLoading}
+            onPress={() => {
+              setDeleteError(null);
+              setIsDeleteModalVisible(true);
+            }}
+            style={[
+              styles.deleteAccountButton,
+              isLoading && styles.disabledButton,
+            ]}
+          >
+            <Text style={styles.deleteAccountButtonText}>Delete Account</Text>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Delete Account Confirmation Modal */}
         <Modal
@@ -722,6 +899,51 @@ const styles = StyleSheet.create({
     color: '#77777D',
     fontSize: 13,
     maxWidth: '100%',
+  },
+  // ── Guest identity display (read-only / editable) ──
+  guestNameDisplay: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+    width: '100%',
+  },
+  guestNameRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  guestNameText: {
+    color: '#FFFFFF',
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  // Inline edit input (mirrors nameInput glass style)
+  guestNameInput: {
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 12,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    flex: 1,
+    fontSize: 15,
+    minHeight: 42,
+    paddingHorizontal: 12,
+  },
+  // Shared compact icon button for confirm / cancel
+  guestEditBtn: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 10,
+    borderWidth: 1,
+    height: 42,
+    justifyContent: 'center',
+    width: 42,
+  },
+  guestOfflineLabel: {
+    color: '#77777D',
+    fontSize: 12,
+    fontStyle: 'italic',
   },
   themeSection: {
     backgroundColor: 'rgba(255, 255, 255, 0.05)',
@@ -980,27 +1202,21 @@ const styles = StyleSheet.create({
 
 const importStyles = StyleSheet.create({
   backdrop: {
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
     flex: 1,
-    justifyContent: 'flex-end',
-    ...(Platform.OS === 'web' ? { justifyContent: 'center', padding: 20 } : {}),
+    justifyContent: 'center',
+    padding: 20,
   },
   container: {
     backgroundColor: 'rgba(14, 14, 20, 0.97)',
     borderColor: 'rgba(255, 255, 255, 0.12)',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
     maxHeight: '90%',
+    maxWidth: 400,
     overflow: 'hidden',
-    ...(Platform.OS === 'web'
-      ? {
-          borderRadius: 20,
-          maxWidth: 520,
-          alignSelf: 'center',
-          width: '100%',
-        }
-      : {}),
+    width: '90%',
   },
   header: {
     alignItems: 'center',
@@ -1180,5 +1396,46 @@ const importStyles = StyleSheet.create({
   },
   disabledBtn: {
     opacity: 0.45,
+  },
+  // ── Genre Dropdown ──
+  dropdownHeader: {
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    borderRadius: 10,
+    borderWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 46,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dropdownHeaderText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  dropdownList: {
+    backgroundColor: 'rgba(18, 18, 24, 0.98)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 10,
+    borderWidth: 1,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    alignItems: 'center',
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 44,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  dropdownItemText: {
+    color: '#B3B3B3',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

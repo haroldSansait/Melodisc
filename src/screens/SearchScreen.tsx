@@ -15,8 +15,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Search as SearchIcon } from 'lucide-react-native';
 
 import { artworkAssets } from '../constants/assetRegistry';
-import { tracks, type Track } from '../constants/tracks';
-import { usePlayerStore } from '../store/playerStore';
+import { type Track } from '../constants/tracks';
+import { usePlayerStore, getAllTracks } from '../store/playerStore';
 import { useThemeStore } from '../store/themeStore';
 import { webGlassStyle } from '../theme/glassStyles';
 
@@ -54,13 +54,14 @@ export function SearchScreen({
   const primaryAccent = useThemeStore(state => state.primaryAccent);
   const playTrack = usePlayerStore(state => state.playTrack);
   const currentTrack = usePlayerStore(state => state.currentTrack);
+  const allTracks = usePlayerStore(getAllTracks);
 
   const filteredTracks = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    // If there's a text query, search all fields
+    // If there's a text query, search all fields including local imports
     if (normalizedQuery) {
-      return tracks.filter(track =>
+      return allTracks.filter(track =>
         [track.title, track.artist, track.genre]
           .join(' ')
           .toLowerCase()
@@ -72,13 +73,13 @@ export function SearchScreen({
     if (genreFilter) {
       const lowerFilter = genreFilter.toLowerCase();
 
-      return tracks.filter(track =>
+      return allTracks.filter(track =>
         track.genre.toLowerCase().includes(lowerFilter),
       );
     }
 
     return [];
-  }, [query, genreFilter]);
+  }, [query, genreFilter, allTracks]);
 
   const showGenreTiles = !query.trim() && !genreFilter;
 
